@@ -227,6 +227,12 @@ complète pèse une quarantaine de mégaoctets.
 - **Vignettes du Finder.** L'extension d'aperçu fonctionne ; l'extension de
   vignettes est en place mais macOS ne la sollicite pas encore de façon fiable
   pour les formats CAO. Les fichiers concernés gardent alors l'icône générique.
+- **Application par défaut des .3mf.** Peek3D déclare un type pour le 3MF, que
+  macOS ne connaît pas seul. Si un trancheur est installé, ajouter cette
+  déclaration amène LaunchServices à reclasser les applications qui
+  revendiquent `.3mf`, et l'ouvreur par défaut peut changer — de Bambu Studio
+  à OrcaSlicer, par exemple. Rétablissez-le depuis le Finder : sélectionnez un
+  fichier, **Lire les informations**, puis **Ouvrir avec › Tout modifier**.
 - **USD, USDZ, Alembic.** Non lus par Peek3D. Si vous activez la bascule
   ci-dessus, ils sont affichés par l'extension SceneKit du système.
 - **Apple Silicon seulement.** La construction cible `arm64`. Un binaire

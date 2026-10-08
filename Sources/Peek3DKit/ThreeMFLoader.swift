@@ -4,37 +4,89 @@ import simd
 /// 3MF reader: a ZIP archive holding an XML model. Unlike STL, the format
 /// describes a scene — reusable objects assembled through transforms — which
 /// has to be flattened before anything can be drawn.
+///
+/// Slicers complicate this further. Bambu Studio and OrcaSlicer write their
+/// project files with the production extension, where the main model carries no
+/// mesh at all: each object lives in its own file inside the archive, pointed
+/// at by a `p:path` attribute. Since that is the shape of most 3MF files people
+/// actually have on disk, following those references is not optional.
 public enum ThreeMFLoader {
+
+    /// Identifies an object by the model file it lives in and its id there.
+    /// Ids restart at 1 in every file, so the path is part of the identity.
+    struct ObjectRef: Hashable {
+        let model: String
+        let id: String
+    }
 
     public static func load(data: Data) throws -> Mesh {
         let archive = try ZipArchive(data: data)
-        let modelData = try archive.contents(of: try modelPath(in: archive))
+        let rootPath = try modelPath(in: archive)
 
-        let parser = ModelParser()
-        guard parser.parse(modelData) else {
-            throw MeshError.malformed("unreadable 3MF XML")
+        // Model files are parsed on demand: a project may hold dozens of
+        // objects, and a preview rarely needs every one of them.
+        var parsers = [String: ModelParser]()
+        func parser(for path: String) throws -> ModelParser {
+            if let existing = parsers[path] { return existing }
+            let parser = ModelParser()
+            guard parser.parse(try archive.contents(of: path)) else {
+                throw MeshError.malformed("unreadable 3MF XML in \(path)")
+            }
+            parsers[path] = parser
+            return parser
         }
-        guard !parser.objects.isEmpty else { throw MeshError.empty }
 
+        let root = try parser(for: rootPath)
         var corners = [SIMD3<Float>]()
-        for item in parser.buildItems {
-            flatten(objectID: item.objectID, transform: item.transform,
-                    objects: parser.objects, into: &corners, depth: 0)
+
+        /// Applies component transforms recursively, across model files. The
+        /// depth limit guards against a file whose objects reference each other
+        /// in a cycle.
+        func flatten(_ ref: ObjectRef, _ transform: simd_float4x4, depth: Int) {
+            guard depth < 16,
+                  let model = try? parser(for: ref.model),
+                  let object = model.objects[ref.id] else { return }
+
+            for tri in object.triangles {
+                for index in [tri.0, tri.1, tri.2] {
+                    guard index >= 0, index < object.vertices.count else { continue }
+                    let p = object.vertices[index]
+                    let t = transform * SIMD4<Float>(p.x, p.y, p.z, 1)
+                    corners.append(SIMD3<Float>(t.x, t.y, t.z))
+                }
+            }
+
+            for component in object.components {
+                // Without a path of its own, a component refers to an object in
+                // the same file as the one holding it.
+                let target = ObjectRef(model: component.path.map(normalize) ?? ref.model,
+                                       id: component.objectID)
+                flatten(target, transform * component.transform, depth: depth + 1)
+            }
+        }
+
+        for item in root.buildItems {
+            flatten(ObjectRef(model: item.path.map(normalize) ?? rootPath, id: item.objectID),
+                    item.transform, depth: 0)
         }
 
         // Some exporters omit the <build> section; show every meshed object
         // rather than render an empty view.
         if corners.isEmpty {
-            for (id, _) in parser.objects {
-                flatten(objectID: id, transform: matrix_identity_float4x4,
-                        objects: parser.objects, into: &corners, depth: 0)
+            for id in root.objects.keys {
+                flatten(ObjectRef(model: rootPath, id: id), matrix_identity_float4x4, depth: 0)
             }
         }
 
         guard !corners.isEmpty else { throw MeshError.empty }
         var mesh = try MeshBuilder.build(corners: corners, format: "3MF")
-        mesh.unit = parser.unit
+        mesh.unit = root.unit
         return mesh
+    }
+
+    /// Paths inside the package are absolute, archive entries are not.
+    private static func normalize(_ path: String) -> String {
+        path.hasPrefix("/") ? String(path.dropFirst()) : path
     }
 
     /// The package relationships name the main model; `3D/3dmodel.model` is
@@ -45,7 +97,7 @@ public enum ThreeMFLoader {
             for chunk in text.components(separatedBy: "<Relationship").dropFirst()
             where chunk.contains("3dmodel") {
                 if let target = attribute("Target", in: chunk) {
-                    let path = target.hasPrefix("/") ? String(target.dropFirst()) : target
+                    let path = normalize(target)
                     if archive.entries[path] != nil { return path }
                 }
             }
@@ -62,40 +114,19 @@ public enum ThreeMFLoader {
         return String(rest[..<close])
     }
 
-    /// Applies component transforms recursively. The depth limit guards against
-    /// a file whose objects reference each other in a cycle.
-    private static func flatten(objectID: String,
-                                transform: simd_float4x4,
-                                objects: [String: Object],
-                                into corners: inout [SIMD3<Float>],
-                                depth: Int) {
-        guard depth < 16, let object = objects[objectID] else { return }
-
-        for tri in object.triangles {
-            for index in [tri.0, tri.1, tri.2] {
-                guard index >= 0, index < object.vertices.count else { continue }
-                let p = object.vertices[index]
-                let t = transform * SIMD4<Float>(p.x, p.y, p.z, 1)
-                corners.append(SIMD3<Float>(t.x, t.y, t.z))
-            }
-        }
-        for component in object.components {
-            flatten(objectID: component.objectID,
-                    transform: transform * component.transform,
-                    objects: objects, into: &corners, depth: depth + 1)
-        }
-    }
-
     // MARK: Intermediate model
 
     struct Object {
         var vertices: [SIMD3<Float>] = []
         var triangles: [(Int, Int, Int)] = []
-        var components: [(objectID: String, transform: simd_float4x4)] = []
+        var components: [Reference] = []
     }
 
-    struct BuildItem {
+    /// A pointer to an object, possibly in another file of the archive.
+    struct Reference {
         let objectID: String
+        /// Set by the production extension's `p:path`; nil means "this file".
+        let path: String?
         let transform: simd_float4x4
     }
 
@@ -104,7 +135,7 @@ public enum ThreeMFLoader {
     /// memory-constrained extension.
     final class ModelParser: NSObject, XMLParserDelegate {
         var objects = [String: Object]()
-        var buildItems = [BuildItem]()
+        var buildItems = [Reference]()
         var unit: String?
         private var currentID: String?
         private var current = Object()
@@ -112,6 +143,8 @@ public enum ThreeMFLoader {
         func parse(_ data: Data) -> Bool {
             let parser = XMLParser(data: data)
             parser.delegate = self
+            // Namespace processing applies to element names only: attributes
+            // keep their prefix, so `p:path` stays `p:path` in the dictionary.
             parser.shouldProcessNamespaces = true
             return parser.parse()
         }
@@ -136,11 +169,15 @@ public enum ThreeMFLoader {
                 }
             case "component":
                 if let id = attr["objectid"] {
-                    current.components.append((id, Self.matrix(attr["transform"])))
+                    current.components.append(Reference(objectID: id,
+                                                        path: Self.externalPath(attr),
+                                                        transform: Self.matrix(attr["transform"])))
                 }
             case "item":
                 if let id = attr["objectid"] {
-                    buildItems.append(BuildItem(objectID: id, transform: Self.matrix(attr["transform"])))
+                    buildItems.append(Reference(objectID: id,
+                                                path: Self.externalPath(attr),
+                                                transform: Self.matrix(attr["transform"])))
                 }
             default:
                 break
@@ -154,6 +191,14 @@ public enum ThreeMFLoader {
                 currentID = nil
                 current = Object()
             }
+        }
+
+        /// The production extension's `path` attribute, whatever prefix the
+        /// file binds its namespace to — `p:` by convention, but nothing in the
+        /// specification requires it.
+        static func externalPath(_ attr: [String: String]) -> String? {
+            if let direct = attr["path"] { return direct }
+            return attr.first { $0.key.hasSuffix(":path") }?.value
         }
 
         /// 3MF spells its units out in words; the preview shows the symbol.

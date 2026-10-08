@@ -35,6 +35,11 @@ enum LoaderTests {
         // A smooth surface: normals average together and the vertex count falls
         // well below the three per triangle of a raw STL.
         .init(file: "sphere.stl",     triangles: 1152, size: [2, 2, 2], vertices: nil),
+        // A slicer project: the main model holds no mesh at all, only a
+        // reference to a separate file inside the archive. This is what Bambu
+        // Studio and OrcaSlicer write, and it is the shape of 3MF most people
+        // actually have on disk.
+        .init(file: "slicer_project.3mf", triangles: 12, size: [2, 1, 3], vertices: 24),
         // A CAD part: the triangle count depends on tessellation, so only the
         // dimensions are checked — those are exact.
         .init(file: "bracket.step",   triangles: 0,    size: [60, 40, 15], vertices: nil),
