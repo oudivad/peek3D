@@ -1,4 +1,5 @@
 import AppKit
+import Quartz
 import UniformTypeIdentifiers
 
 /// Peek3D is not a viewer. Everything happens in the Finder, on the space bar,
@@ -27,6 +28,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let status = StatusView()
     private var handoverItem: NSMenuItem!
 
+    /// Files asked for before the window existed. When the application is
+    /// launched by opening a document, macOS delivers the open event before
+    /// `applicationDidFinishLaunching`, and the Quick Look panel needs a
+    /// responder chain that does not exist yet.
+    private var pendingPreview: [URL] = []
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
 
@@ -44,6 +51,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         status.refresh()
         NSApp.activate(ignoringOtherApps: true)
 
+        if !pendingPreview.isEmpty {
+            let urls = pendingPreview
+            pendingPreview = []
+            status.preview(urls)
+        }
+
         // After the window is on screen: a modal alert raised before the app is
         // visible appears out of nowhere.
         PreviewHandover.offerIfNeeded()
@@ -58,12 +71,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
-    /// Double-clicking a model opens nothing: the Finder's preview already does
-    /// the job and this app has no viewer. All we do is point at where to look.
+    /// Opening a model shows the Quick Look panel for it — the very preview the
+    /// space bar gives, drawn by the same extension.
+    ///
+    /// Peek3D is the only application that knows what a STEP or 3MF file is, so
+    /// LaunchServices makes it their opener whether we declare them as documents
+    /// or not. Rather than leave "Open with Peek3D" pointing at a settings
+    /// window, we make it do the one thing Peek3D is for.
     func application(_ application: NSApplication, open urls: [URL]) {
+        let models = urls.filter(MeshDocument.canLoad)
+        guard window != nil else {
+            pendingPreview = models
+            return
+        }
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        status.flashHint()
+        status.preview(models)
     }
 
     // MARK: Settings
@@ -138,6 +161,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 final class StatusView: NSView {
 
     private let hint = NSTextField(labelWithString: "")
+
+    /// Files to show in the Quick Look panel. Empty the rest of the time.
+    private var items: [URL] = []
     private let quickLookBox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
 
     override init(frame: NSRect) {
@@ -236,5 +262,48 @@ final class StatusView: NSView {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             self?.hint.textColor = .secondaryLabelColor
         }
+    }
+
+    // MARK: Quick Look panel
+
+    /// Shows these files in the shared Quick Look panel.
+    func preview(_ urls: [URL]) {
+        guard !urls.isEmpty, let panel = QLPreviewPanel.shared() else {
+            flashHint()
+            return
+        }
+        items = urls
+        // The panel looks for a controller along the responder chain, so this
+        // view has to be in it — hence making its window key first.
+        window?.makeFirstResponder(self)
+        panel.makeKeyAndOrderFront(nil)
+        panel.reloadData()
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool { true }
+
+    // These overrides inherit NSResponder's nonisolated signature, but Quick
+    // Look only ever calls them on the main thread.
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated { panel.dataSource = self }
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated {
+            panel.dataSource = nil
+            items = []
+        }
+    }
+}
+
+// The panel calls back on the main thread, which Swift 6 wants stated.
+extension StatusView: @MainActor QLPreviewPanelDataSource {
+
+    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { items.count }
+
+    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! {
+        items[index] as NSURL
     }
 }

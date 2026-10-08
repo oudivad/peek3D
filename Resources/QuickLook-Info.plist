@@ -16,6 +16,64 @@
     <key>DTSDKName</key><string>macosx@MACOS_MIN@</string>
     <key>LSMinimumSystemVersion</key><string>@MACOS_MIN@</string>
     <key>NSHighResolutionCapable</key><true/>
+    <!-- The types are declared here rather than in the host application.
+         macOS knows neither 3MF nor the CAD exchange formats, and whoever
+         declares them becomes their opener for want of any other claimant.
+         An extension cannot be an opener, so the association stops here. -->
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key><string>org.3mf.3mf</string>
+            <key>UTTypeDescription</key><string>3MF Model</string>
+            <!-- Deliberately not conforming to public.3d-content: the Quick Look
+                 extension shipped with SceneKit claims that generic type, wins
+                 over ours, and then fails for want of being able to read B-Rep.
+                 Declaring only public.data leaves us the sole candidate for
+                 these formats. -->
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key><array><string>3mf</string></array>
+                <key>public.mime-type</key><array><string>model/3mf</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key><string>org.iso.step</string>
+            <key>UTTypeDescription</key><string>STEP CAD Model</string>
+            <!-- Deliberately not conforming to public.3d-content: the Quick Look
+                 extension shipped with SceneKit claims that generic type, wins
+                 over ours, and then fails for want of being able to read B-Rep.
+                 Declaring only public.data leaves us the sole candidate for
+                 these formats. -->
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>step</string><string>stp</string></array>
+                <key>public.mime-type</key><array><string>model/step</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key><string>org.iso.iges</string>
+            <key>UTTypeDescription</key><string>IGES CAD Model</string>
+            <!-- Deliberately not conforming to public.3d-content: the Quick Look
+                 extension shipped with SceneKit claims that generic type, wins
+                 over ours, and then fails for want of being able to read B-Rep.
+                 Declaring only public.data leaves us the sole candidate for
+                 these formats. -->
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>iges</string><string>igs</string></array>
+                <key>public.mime-type</key><array><string>model/iges</string></array>
+            </dict>
+        </dict>
+    </array>
+
     <key>NSExtension</key>
     <dict>
         <key>NSExtensionPointIdentifier</key><string>com.apple.quicklook.preview</string>
