@@ -1,10 +1,35 @@
 # Peek3D
 
-*[English version](README.md)*
-
 Aperçu de modèles 3D dans le Finder : on sélectionne un fichier, on appuie sur
 **espace**, la pièce apparaît et tourne. On peut la faire pivoter à la souris,
 zoomer, puis refermer. Rien à ouvrir, rien à lancer.
+
+## Téléchargement
+
+### → [**Dernière version publiée**](https://github.com/oudivad/peek3d/releases/latest)
+
+Récupérez `Peek3D-1.0.0.dmg` dans **Releases**, la colonne de droite de cette
+page. **Il n'y a rien à compiler.** Ouvrez l'archive, glissez **Peek3D** sur
+**Applications**, puis lancez l'application une fois — c'est à ce moment que
+macOS découvre l'extension d'aperçu. Vous pouvez la refermer aussitôt, les
+aperçus continuent de fonctionner.
+
+Nécessite **macOS 13 (Ventura) ou plus récent**, sur Apple Silicon.
+
+> **Le premier lancement sera refusé.** Peek3D n'est pas notarisé — cela exige
+> un certificat Apple payant — donc macOS annonce ne pas pouvoir vérifier le
+> développeur. Autorisez-le une fois depuis **Réglages Système >
+> Confidentialité et sécurité > Ouvrir quand même**, et la question ne se
+> reposera plus. La section [Signature](#la-signature-et-ce-quelle-coûte)
+> explique pourquoi, et quelles sont les solutions.
+
+Ou, avec Homebrew :
+
+```sh
+brew install --cask --no-quarantine oudivad/tap/peek3d
+```
+
+*[English version](README.md)*
 
 Formats pris en charge :
 
@@ -23,25 +48,47 @@ avant de pouvoir afficher quoi que ce soit : Peek3D embarque pour cela
 [OpenCASCADE](https://dev.opencascade.org), le noyau géométrique qui fait
 tourner une bonne part des logiciels de CAO libres.
 
-## Installation
+## Prendre la main sur les formats que macOS gère déjà
+
+macOS sait déjà prévisualiser les STL, OBJ et PLY — en moins bien, mais il le
+sait. Trois extensions se disputent alors le fichier : celle de Pixar
+qu'Apple embarque pour l'USD (`HydraQLPreviewExtension`), qui revendique au
+passage ces trois formats ; celle de SceneKit, qui revendique `public.3d-content`
+tout entier ; et Peek3D. À égalité de précision dans les types déclarés, c'est
+l'extension système qui gagne, et toutes deux sont marquées
+`showsInExtensionsManager = false` : elles n'apparaissent même pas dans les
+Réglages Système.
+
+Le seul levier est l'« élection » de PlugInKit, une préférence par utilisateur
+qui ne demande aucun privilège d'administrateur. Peek3D le propose au premier
+lancement, et le réglage reste accessible dans le menu **Peek3D › Utiliser
+Peek3D pour les STL, OBJ et PLY**.
+
+Un second réglage, indépendant, commande le bouton **Ouvrir avec…** du panneau
+d'aperçu et ce que fait un double-clic dans le Finder. Celui-là désigne
+l'application par défaut du type de fichier, que macOS attribue à Aperçu pour
+les STL, OBJ et PLY. **Peek3D › Ouvrir les STL, OBJ et PLY avec Peek3D** la
+revendique, et le décocher la rend à Aperçu.
+
+En ligne de commande, l'élection de l'aperçu revient à :
 
 ```sh
-make install
+pluginkit -e ignore -i com.apple.HydraQLPreviewExtension   # Peek3D passe devant
+pluginkit -e use    -i com.apple.HydraQLPreviewExtension   # retour à macOS
+qlmanage -r cache                                          # purge les aperçus
 ```
 
-Puis lancez l'application **une fois** : macOS ne découvre une extension Quick
-Look qu'à ce moment-là. Vous pouvez ensuite refermer la fenêtre, elle ne sert
-plus à rien — sauf à examiner un modèle plus longuement qu'un aperçu.
+L'échange est à connaître : l'extension d'Apple gère aussi l'USD, l'USDZ,
+l'Alembic et le MaterialX, que Peek3D ne lit pas. Une fois écartée, ces
+fichiers retombent sur l'extension SceneKit, plus sommaire mais fonctionnelle.
+Les formats que personne d'autre ne revendique — STEP, IGES, 3MF — reviennent à
+Peek3D sans rien avoir à régler.
 
-Depuis macOS 14, les applications installées sont protégées contre les
-modifications faites depuis un terminal. Si `make install` n'arrive pas à
-remplacer une copie précédente, glissez Peek3D de /Applications vers la
-corbeille depuis le Finder, ou autorisez votre terminal dans Réglages Système >
-Confidentialité et sécurité > Gestion des apps.
+## Compiler depuis les sources
 
-Désinstallation : `make uninstall`.
+Utile seulement si vous voulez modifier Peek3D. Pour l'utiliser, prenez
+l'archive ci-dessus.
 
-## Construction
 
 Il n'y a pas besoin d'Xcode : les Command Line Tools suffisent.
 
@@ -61,6 +108,24 @@ make app
 Variables utiles : `VERSION`, `BUNDLE_ID`, `MACOS_MIN`, `CODESIGN_ID`,
 `OCCT_PREFIX`.
 
+### Installer sa propre version
+
+```sh
+make install
+```
+
+Puis lancez l'application **une fois** : macOS ne découvre une extension Quick
+Look qu'à ce moment-là. Vous pouvez ensuite refermer la fenêtre, elle ne sert
+plus à rien — sauf à examiner un modèle plus longuement qu'un aperçu.
+
+Depuis macOS 14, les applications installées sont protégées contre les
+modifications faites depuis un terminal. Si `make install` n'arrive pas à
+remplacer une copie précédente, glissez Peek3D de /Applications vers la
+corbeille depuis le Finder, ou autorisez votre terminal dans Réglages Système >
+Confidentialité et sécurité > Gestion des apps.
+
+Désinstallation : `make uninstall`.
+
 ### Pour une version publiée
 
 Deux points demandent de l'attention avant de distribuer une archive.
@@ -76,8 +141,10 @@ scripts/build-occt.sh 13.0              # compte 20 à 40 minutes
 make app OCCT_PREFIX=$PWD/vendor/occt MACOS_MIN=13.0
 ```
 
-**La signature, et ce qu'elle coûte.** Par défaut la signature est *ad hoc*,
-et ne coûte rien. Gatekeeper rejette alors l'application comme l'archive :
+#### La signature, et ce qu'elle coûte
+
+Par défaut la signature est *ad hoc*, et ne coûte rien. Gatekeeper rejette
+alors l'application comme l'archive :
 
 ```
 $ spctl -a -t exec -vv /Applications/Peek3D.app
@@ -124,42 +191,6 @@ Une signature ad hoc suffit à ce que l'extension Quick Look se charge : vérifi
 ici, l'extension sert les aperçus depuis une version non notarisée. Ce que
 paye le certificat, c'est l'absence de dialogue inquiétant, pas le droit de
 fonctionner.
-
-## Prendre la main sur les formats que macOS gère déjà
-
-macOS sait déjà prévisualiser les STL, OBJ et PLY — en moins bien, mais il le
-sait. Trois extensions se disputent alors le fichier : celle de Pixar
-qu'Apple embarque pour l'USD (`HydraQLPreviewExtension`), qui revendique au
-passage ces trois formats ; celle de SceneKit, qui revendique `public.3d-content`
-tout entier ; et Peek3D. À égalité de précision dans les types déclarés, c'est
-l'extension système qui gagne, et toutes deux sont marquées
-`showsInExtensionsManager = false` : elles n'apparaissent même pas dans les
-Réglages Système.
-
-Le seul levier est l'« élection » de PlugInKit, une préférence par utilisateur
-qui ne demande aucun privilège d'administrateur. Peek3D le propose au premier
-lancement, et le réglage reste accessible dans le menu **Peek3D › Utiliser
-Peek3D pour les STL, OBJ et PLY**.
-
-Un second réglage, indépendant, commande le bouton **Ouvrir avec…** du panneau
-d'aperçu et ce que fait un double-clic dans le Finder. Celui-là désigne
-l'application par défaut du type de fichier, que macOS attribue à Aperçu pour
-les STL, OBJ et PLY. **Peek3D › Ouvrir les STL, OBJ et PLY avec Peek3D** la
-revendique, et le décocher la rend à Aperçu.
-
-En ligne de commande, l'élection de l'aperçu revient à :
-
-```sh
-pluginkit -e ignore -i com.apple.HydraQLPreviewExtension   # Peek3D passe devant
-pluginkit -e use    -i com.apple.HydraQLPreviewExtension   # retour à macOS
-qlmanage -r cache                                          # purge les aperçus
-```
-
-L'échange est à connaître : l'extension d'Apple gère aussi l'USD, l'USDZ,
-l'Alembic et le MaterialX, que Peek3D ne lit pas. Une fois écartée, ces
-fichiers retombent sur l'extension SceneKit, plus sommaire mais fonctionnelle.
-Les formats que personne d'autre ne revendique — STEP, IGES, 3MF — reviennent à
-Peek3D sans rien avoir à régler.
 
 ## Architecture
 
