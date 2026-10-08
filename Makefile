@@ -144,20 +144,24 @@ $(APP_DIR): $(OBJ)/occt_bridge.o $(KIT_SOURCES) $(APP_SOURCES) $(QL_SOURCES) $(T
 
 install: app
 	@# Since macOS 14, App Management protection stops a program from altering
-	@# an already-installed application. A plain rm then fails halfway and
-	@# leaves an empty bundle behind, explaining nothing — hence this check and
-	@# the message that says what to do.
-	@if [ -e $(INSTALL_DIR)/$(APP).app ] && ! rm -rf $(INSTALL_DIR)/$(APP).app 2>/dev/null; then \
-		echo "✗ Cannot replace $(INSTALL_DIR)/$(APP).app"; \
-		echo ""; \
-		echo "  macOS protects installed applications from changes made in a"; \
-		echo "  terminal. Either:"; \
-		echo ""; \
-		echo "  • drag $(APP) from $(INSTALL_DIR) to the Trash in the Finder,"; \
-		echo "    then run make install again; or"; \
-		echo "  • allow your terminal under System Settings >"; \
-		echo "    Privacy & Security > App Management."; \
-		exit 1; \
+	@# an already-installed application. A plain `rm -rf` is the wrong probe:
+	@# it deletes the contents, then fails on the directory itself, leaving an
+	@# empty bundle behind. Renaming is atomic — it either works or changes
+	@# nothing — so that is what tests the ground before anything is removed.
+	@if [ -e $(INSTALL_DIR)/$(APP).app ]; then \
+		if mv $(INSTALL_DIR)/$(APP).app $(INSTALL_DIR)/.$(APP).app.previous 2>/dev/null; then \
+			rm -rf $(INSTALL_DIR)/.$(APP).app.previous; \
+		else \
+			echo "✗ Cannot replace $(INSTALL_DIR)/$(APP).app — nothing was changed."; \
+			echo ""; \
+			echo "  macOS protects installed applications from changes made in a"; \
+			echo "  terminal. To stop this coming back, allow your terminal under"; \
+			echo "  System Settings > Privacy & Security > App Management."; \
+			echo ""; \
+			echo "  Or, just this once: drag $(APP) from $(INSTALL_DIR) to the"; \
+			echo "  Trash in the Finder, then run make install again."; \
+			exit 1; \
+		fi; \
 	fi
 	@cp -R $(APP_DIR) $(INSTALL_DIR)/
 	@# macOS only discovers extensions when it registers the bundle containing

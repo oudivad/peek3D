@@ -1,48 +1,38 @@
-/* Peek3D — French translation. The reference language is en.lproj. */
+/* Peek3D — French translation. The reference language is en.lproj.
+   Keep these short. Everything here is read in passing, in a panel or an
+   alert someone wants to dismiss. */
 
-/* Errors shown in place of a preview */
-"error.unreadable"   = "Fichier illisible : %@";
-"error.malformed"    = "Fichier mal formé : %@";
-"error.unsupported"  = "Format non pris en charge : %@";
-"error.empty"        = "Ce fichier ne contient aucune géométrie.";
+/* Shown in place of a preview */
+"error.unreadable"      = "Fichier illisible : %@";
+"error.malformed"       = "Fichier mal formé : %@";
+"error.unsupported"     = "Format non pris en charge : %@";
+"error.empty"           = "Ce fichier ne contient aucune géométrie.";
 
-/* Format label under the preview. %1$@ is STEP or IGES, %2$d a face count. */
-"format.cad.faces"   = "%1$@ — %2$d faces";
-"info.triangles"     = "%@ triangles";
+/* Info strip under the preview. %1$@ is STEP or IGES, %2$d a face count. */
+"format.cad.faces"      = "%1$@ — %2$d faces";
+"info.triangles"        = "%@ triangles";
 
 /* Menus */
-"menu.about"         = "À propos de Peek3D";
-"menu.handover"      = "Utiliser Peek3D pour les STL, OBJ et PLY";
-"menu.hide"          = "Masquer Peek3D";
-"menu.quit"          = "Quitter Peek3D";
-"menu.file"          = "Fichier";
-"menu.open"          = "Ouvrir…";
-"menu.close"         = "Fermer";
-"menu.window"        = "Fenêtre";
-"menu.minimize"      = "Réduire";
-"menu.zoom"          = "Zoom";
+"menu.about"            = "À propos de Peek3D";
+"menu.handover"         = "Utiliser Peek3D pour les STL, OBJ et PLY";
+"menu.hide"             = "Masquer Peek3D";
+"menu.quit"             = "Quitter Peek3D";
+"menu.window"           = "Fenêtre";
+"menu.close"            = "Fermer";
+"menu.minimize"         = "Réduire";
+"about.body"            = "Aperçus 3D dans le Finder.\n\nFormats : %1$@\nCAO : OpenCASCADE %2$@";
 
-/* Window */
-"open.message"       = "Choisissez un modèle 3D à examiner";
-"welcome.title"      = "Déposez un modèle 3D ici";
-"loading"            = "Lecture de %@…";
-"about.body"         = "Aperçu de modèles 3D dans le Finder.\n\nFormats : %1$@\nGéométrie CAO : OpenCASCADE %2$@";
+/* Status panel */
+"status.heading"        = "Peek3D est installé";
+"status.hint"           = "Sélectionnez un fichier 3D dans le Finder et appuyez sur espace.";
+"status.formats"        = "Formats";
+"status.settings"       = "Réglages";
+"status.quicklook.help" = "macOS prévisualise ces trois-là lui-même et passe devant. Cochez pour les confier à Peek3D ; les aperçus USD et USDZ seront plus sommaires en échange.";
 
-/* Taking over the formats macOS already previews */
-"handover.title"     = "Utiliser Peek3D pour tous les formats 3D ?";
-"handover.body"      = "macOS prévisualise déjà les fichiers %1$@ avec sa propre extension, et celle-ci passe avant Peek3D.\n\nPeek3D peut prendre la main, au prix d'un échange : les fichiers %2$@ seront alors affichés par l'extension SceneKit du système, plus sommaire.\n\nCe réglage se change à tout moment dans le menu Peek3D.";
-"handover.accept"    = "Utiliser Peek3D";
-"handover.decline"   = "Garder les réglages de macOS";
-"handover.failed"    = "Le réglage n'a pas pu être appliqué";
-"handover.failed.body" = "La commande suivante fait la même chose depuis le Terminal :\n\npluginkit -e %1$@ -i %2$@";
-
-/* Welcome screen */
-"welcome.hint" = "Vous pouvez aussi sélectionner un fichier 3D dans le Finder et appuyer sur espace.";
-
-
-/* Status panel — the whole of the app's interface */
-"status.heading"       = "Peek3D est installé";
-"status.hint"          = "Sélectionnez un fichier 3D dans le Finder et appuyez sur espace.";
-"status.formats"       = "Formats pris en charge";
-"status.settings"      = "Réglages";
-"status.quicklook.help" = "macOS prévisualise les STL, OBJ et PLY avec sa propre extension, qui passe devant. Cocher confie ces formats à Peek3D ; l'USD, l'USDZ et l'Alembic retombent alors sur une extension système plus sommaire.";
+/* Asked once, at first launch */
+"handover.title"        = "Utiliser Peek3D pour les STL, OBJ et PLY ?";
+"handover.body"         = "macOS prévisualise ces trois-là lui-même et passe devant. Les confier à Peek3D ? Les aperçus USD et USDZ seront plus sommaires en échange — vous pourrez revenir en arrière depuis le menu Peek3D.";
+"handover.accept"       = "Utiliser Peek3D";
+"handover.decline"      = "Garder macOS";
+"handover.failed"       = "Réglage impossible à appliquer";
+"handover.failed.body"  = "Dans le Terminal :\n\npluginkit -e %1$@ -i %2$@";
