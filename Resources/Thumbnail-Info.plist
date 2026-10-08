@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key><string>Peek3DThumbnail</string>
+    <key>CFBundleIdentifier</key><string>@BUNDLE_ID@.thumbnail</string>
+    <key>CFBundleName</key><string>Peek3D Thumbnails</string>
+    <!-- An extension is an XPC bundle, not an application. -->
+    <key>CFBundlePackageType</key><string>XPC!</string>
+    <key>CFBundleShortVersionString</key><string>@VERSION@</string>
+    <key>CFBundleVersion</key><string>@VERSION@</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleSupportedPlatforms</key><array><string>MacOSX</string></array>
+    <key>DTPlatformName</key><string>macosx</string>
+    <key>DTSDKName</key><string>macosx@MACOS_MIN@</string>
+    <key>LSMinimumSystemVersion</key><string>@MACOS_MIN@</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key><string>com.apple.quicklook.thumbnail</string>
+        <!-- The prefix must be the Swift module name, not the bundle's. -->
+        <key>NSExtensionPrincipalClass</key><string>Peek3DThumbnail.ThumbnailProvider</string>
+        <key>NSExtensionAttributes</key>
+        <dict>
+            <key>QLSupportedContentTypes</key>
+            <array>
+                <string>public.standard-tesselated-geometry-format</string>
+                <string>public.geometry-definition-format</string>
+                <string>public.polygon-file-format</string>
+                <string>org.3mf.3mf</string>
+                <string>org.iso.step</string>
+                <string>org.iso.iges</string>
+            </array>
+            <!-- Smallest size the provider is asked for; below it the Finder
+                 draws its own placeholder. -->
+            <key>QLThumbnailMinimumDimension</key><integer>16</integer>
+        </dict>
+    </dict>
+</dict>
+</plist>

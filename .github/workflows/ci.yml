@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Homebrew package is enough to validate the code: it targets the
+      # runner's macOS version, which does not matter as long as the binary
+      # produced here is never distributed.
+      - name: Install OpenCASCADE
+        run: brew install opencascade
+
+      - name: Build
+        run: make app MACOS_MIN=$(sw_vers -productVersion | cut -d. -f1).0
+
+      - name: Test the loaders
+        run: make test MACOS_MIN=$(sw_vers -productVersion | cut -d. -f1).0
+
+      # Checks that no Homebrew path survives: this is the kind of mistake that
+      # is invisible on the development machine and breaks every other one.
+      - name: Check the bundle is self-contained
+        run: |
+          for binary in \
+            build/Peek3D.app/Contents/MacOS/Peek3D \
+            build/Peek3D.app/Contents/PlugIns/*.appex/Contents/MacOS/*; do
+              if otool -L "$binary" | grep -qE '/opt/homebrew|/usr/local'; then
+                echo "::error::$binary still references a Homebrew library"
+                otool -L "$binary"
+                exit 1
+              fi
+          done
+          echo "No external dependencies left"

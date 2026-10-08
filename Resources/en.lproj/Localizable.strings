@@ -1,0 +1,48 @@
+/* Peek3D — base language. The French translation lives in fr.lproj. */
+
+/* Errors shown in place of a preview */
+"error.unreadable"   = "Can't read the file: %@";
+"error.malformed"    = "Malformed file: %@";
+"error.unsupported"  = "Unsupported format: %@";
+"error.empty"        = "This file contains no geometry.";
+
+/* Format label under the preview. %1$@ is STEP or IGES, %2$d a face count. */
+"format.cad.faces"   = "%1$@ — %2$d faces";
+"info.triangles"     = "%@ triangles";
+
+/* Menus */
+"menu.about"         = "About Peek3D";
+"menu.handover"      = "Use Peek3D for STL, OBJ and PLY";
+"menu.hide"          = "Hide Peek3D";
+"menu.quit"          = "Quit Peek3D";
+"menu.file"          = "File";
+"menu.open"          = "Open…";
+"menu.close"         = "Close";
+"menu.window"        = "Window";
+"menu.minimize"      = "Minimize";
+"menu.zoom"          = "Zoom";
+
+/* Window */
+"open.message"       = "Choose a 3D model to inspect";
+"welcome.title"      = "Drop a 3D model here";
+"loading"            = "Reading %@…";
+"about.body"         = "3D model previews in the Finder.\n\nFormats: %1$@\nCAD geometry: OpenCASCADE %2$@";
+
+/* Taking over the formats macOS already previews */
+"handover.title"     = "Use Peek3D for every 3D format?";
+"handover.body"      = "macOS already previews %1$@ files with its own extension, and that one takes precedence over Peek3D.\n\nPeek3D can take over, at a price: %2$@ files will then be shown by the system's SceneKit extension, which is cruder.\n\nYou can change this at any time from the Peek3D menu.";
+"handover.accept"    = "Use Peek3D";
+"handover.decline"   = "Keep the macOS defaults";
+"handover.failed"    = "The setting could not be applied";
+"handover.failed.body" = "This Terminal command does the same thing:\n\npluginkit -e %1$@ -i %2$@";
+
+/* Welcome screen */
+"welcome.hint" = "You can also select a 3D file in the Finder and press Space.";
+
+
+/* Status panel — the whole of the app's interface */
+"status.heading"       = "Peek3D is installed";
+"status.hint"          = "Select a 3D file in the Finder and press Space.";
+"status.formats"       = "Supported formats";
+"status.settings"      = "Settings";
+"status.quicklook.help" = "macOS previews STL, OBJ and PLY with its own extension, which takes precedence. Checking this hands those formats to Peek3D; USD, USDZ and Alembic then fall back to a cruder system extension.";

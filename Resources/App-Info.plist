@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key><string>Peek3D</string>
+    <key>CFBundleIdentifier</key><string>@BUNDLE_ID@</string>
+    <key>CFBundleName</key><string>Peek3D</string>
+    <key>CFBundleDisplayName</key><string>Peek3D</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>@VERSION@</string>
+    <key>CFBundleVersion</key><string>@VERSION@</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleSupportedPlatforms</key><array><string>MacOSX</string></array>
+    <key>DTPlatformName</key><string>macosx</string>
+    <key>DTSDKName</key><string>macosx@MACOS_MIN@</string>
+    <key>LSMinimumSystemVersion</key><string>@MACOS_MIN@</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.graphics-design</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSHumanReadableCopyright</key><string>Peek3D — free software, MIT licence</string>
+
+    <!-- macOS knows neither 3MF nor the CAD exchange formats. They are declared
+         as imported rather than exported: these formats are not ours, we only
+         recognize them. -->
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key><string>org.3mf.3mf</string>
+            <key>UTTypeDescription</key><string>3MF Model</string>
+            <!-- Deliberately not conforming to public.3d-content: the Quick Look
+                 extension shipped with SceneKit claims that generic type, wins
+                 over ours, and then fails for want of being able to read B-Rep.
+                 Declaring only public.data leaves us the sole candidate for
+                 these formats. -->
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key><array><string>3mf</string></array>
+                <key>public.mime-type</key><array><string>model/3mf</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key><string>org.iso.step</string>
+            <key>UTTypeDescription</key><string>STEP CAD Model</string>
+            <!-- Deliberately not conforming to public.3d-content: the Quick Look
+                 extension shipped with SceneKit claims that generic type, wins
+                 over ours, and then fails for want of being able to read B-Rep.
+                 Declaring only public.data leaves us the sole candidate for
+                 these formats. -->
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>step</string><string>stp</string></array>
+                <key>public.mime-type</key><array><string>model/step</string></array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key><string>org.iso.iges</string>
+            <key>UTTypeDescription</key><string>IGES CAD Model</string>
+            <!-- Deliberately not conforming to public.3d-content: the Quick Look
+                 extension shipped with SceneKit claims that generic type, wins
+                 over ours, and then fails for want of being able to read B-Rep.
+                 Declaring only public.data leaves us the sole candidate for
+                 these formats. -->
+            <key>UTTypeConformsTo</key>
+            <array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array><string>iges</string><string>igs</string></array>
+                <key>public.mime-type</key><array><string>model/iges</string></array>
+            </dict>
+        </dict>
+    </array>
+
+    <!-- No CFBundleDocumentTypes: Peek3D does not open documents, it only
+         previews them. The type declarations above stay necessary so the Quick
+         Look extension knows what it applies to, but nothing here should make
+         the application an opener. -->
+</dict>
+</plist>

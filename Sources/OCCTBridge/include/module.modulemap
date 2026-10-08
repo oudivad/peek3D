@@ -1,0 +1,4 @@
+module OCCTBridge {
+    header "occt_bridge.h"
+    export *
+}

@@ -1,0 +1,54 @@
+name: Release
+
+# Manual trigger for now. The first release is published by hand, from a disk
+# image built and tested locally; letting this workflow fire on a tag would have
+# it rebuild and replace that file, invalidating the checksum in the cask.
+#
+# Switch back to the tag trigger below once you have watched this run succeed:
+#
+#   on:
+#     push:
+#       tags: ['v*']
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish, without the leading v (e.g. 1.0.1)'
+        required: true
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Unlike CI, a release cannot make do with the Homebrew package: it is
+      # compiled for the runner's macOS version and would make the application
+      # unusable on anything older.
+      - name: Cache OpenCASCADE
+        id: occt-cache
+        uses: actions/cache@v4
+        with:
+          path: vendor/occt
+          key: occt-7.9.3-macos13-${{ runner.arch }}
+
+      - name: Build OpenCASCADE
+        if: steps.occt-cache.outputs.cache-hit != 'true'
+        run: scripts/build-occt.sh 13.0
+
+      - name: Build the disk image
+        run: |
+          make dmg \
+            VERSION="${{ inputs.version }}" \
+            OCCT_PREFIX="$PWD/vendor/occt" \
+            MACOS_MIN=13.0
+
+      # Developer ID signing and notarization need repository secrets. Without
+      # them the image is published as is, and users will have to lift the
+      # quarantine themselves (see the README).
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/*.dmg
+          tag_name: v${{ inputs.version }}
+          generate_release_notes: true
