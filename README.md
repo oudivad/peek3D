@@ -11,24 +11,23 @@
 Press space on an `.stl`, `.obj`, `.ply`, `.3mf`, `.step` or `.iges` file in the
 Finder. The part renders and turns. Drag to rotate, pinch to zoom.
 
-**[Download the latest release](https://github.com/oudivad/peek3D/releases/latest)** — 19 MB · macOS 13+ · Apple Silicon
+**[Download the latest release](https://github.com/oudivad/peek3D/releases/latest)**  19 MB · macOS 13+ · Apple Silicon
 
-Drag into Applications, open once to register the extension, quit.
+Drag into Applications, open once to register the extension, quit, done.
 
 ### First launch
 
 Not notarized, so macOS blocks it. Approve under System Settings › Privacy &
 Security › Open Anyway.
 
-Run it from Applications, not from the mounted disk image. Launched from the
-image, the extension registers a path on that volume and breaks on eject.
+Run it from Applications.
 
 ### STEP and IGES
 
 Exact surfaces, not meshes. Tessellated with OpenCASCADE, bundled as dylibs.
 
-On a dense part the wireframe draws sharp edges only — faces meeting above 25°,
-plus open borders — which stays readable where a full triangle mesh does not.
+On a dense part the wireframe draws sharp edges only (faces meeting above 25°,
+plus open borders) which stays readable where a full triangle mesh does not.
 
 ---
 
