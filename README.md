@@ -1,29 +1,38 @@
-<img src="docs/images/icon.png" width="96" align="right" alt="">
+<p align="center">
+  <img src="docs/images/icon.png" width="128" alt="">
+</p>
 
-# Peek3D
+<h1 align="center">Peek3D</h1>
+
+<p align="center">Quick Look previews for 3D and CAD files on macOS.</p>
+
+---
 
 Press space on an `.stl`, `.obj`, `.ply`, `.3mf`, `.step` or `.iges` file in the
-Finder, and the part shows up and turns. Drag it to rotate, pinch to zoom, press
-space again to put it away.
+Finder. The part renders and turns. Drag to rotate, pinch to zoom.
 
-### [Download the latest release](https://github.com/oudivad/peek3D/releases/latest)
+**[Download the latest release](https://github.com/oudivad/peek3D/releases/latest)** — 19 MB · macOS 13+ · Apple Silicon
 
-19 MB, macOS 13 or later, Apple Silicon. Drag Peek3D into Applications and open
-it once. That first launch is what makes macOS notice the preview extension;
-after it you can quit the app and forget it is there.
+Drag into Applications, open once to register the extension, quit.
 
-Two things look like bugs and are not. macOS refuses the first launch, because
-Peek3D is not notarized and notarizing needs a paid Apple certificate: allow it
-once under System Settings › Privacy & Security › Open Anyway. And open it from
-Applications rather than from the mounted disk image, because launched from the
-image the extension registers at a path that vanishes the moment you eject it.
+### First launch
 
-STEP and IGES are the interesting ones. They hold no triangles at all, only
-exact surfaces, so Peek3D carries OpenCASCADE to work out what to draw. On a
-part dense enough that drawing every triangle would be a smear, the wireframe
-can show only the edges where the surface actually turns.
+Not notarized, so macOS blocks it. Approve under System Settings › Privacy &
+Security › Open Anyway.
 
-[How it works](docs/design.md) · [Building from source](docs/building.md) ·
-[Known limitations](docs/limitations.md)
+Run it from Applications, not from the mounted disk image. Launched from the
+image, the extension registers a path on that volume and breaks on eject.
 
-MIT licensed. Ships OpenCASCADE, see the [third-party notices](THIRD-PARTY.md).
+### STEP and IGES
+
+Exact surfaces, not meshes. Tessellated with OpenCASCADE, bundled as dylibs.
+
+On a dense part the wireframe draws sharp edges only — faces meeting above 25°,
+plus open borders — which stays readable where a full triangle mesh does not.
+
+---
+
+[How it works](docs/design.md) · [Build](docs/building.md) · [Limitations](docs/limitations.md)
+
+MIT. Ships OpenCASCADE under LGPL 2.1 with the OCCT exception
+([notices](THIRD-PARTY.md)).
