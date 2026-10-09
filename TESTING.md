@@ -44,7 +44,11 @@ Formats nobody else claims — STEP, IGES, 3MF — are handled either way.
 
 The disk image has a **Samples** folder. Copy it somewhere, then in the Finder:
 
-- select `bracket.step` and press **space** — a filleted, drilled CAD part;
+- select `manifold.step` and press **space** — a deliberately awkward part:
+  a knurled boss, sixteen counterbored holes, thirty-five thousand triangles.
+  Switch the wireframe between *all triangles* and *sharp edges* and compare;
+- select `bracket.step` — a filleted part, which has no sharp edge anywhere,
+  so that mode draws nothing on it. That is geometry, not a fault;
 - drag inside the preview to rotate it, scroll to zoom;
 - leave it alone and it turns slowly on its own;
 - try `sphere.stl`, `cube.obj`, `cube.3mf` as well.

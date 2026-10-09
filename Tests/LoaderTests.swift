@@ -44,6 +44,11 @@ enum LoaderTests {
         // Studio and OrcaSlicer write, and it is the shape of 3MF most people
         // actually have on disk.
         .init(file: "slicer_project.3mf", triangles: 12, size: [2, 1, 3], vertices: 24, sharpEdges: true),
+        // The worst case: a knurled boss, sixteen counterbored holes and a
+        // groove, which tessellates into tens of thousands of triangles while
+        // keeping every rim sharp. It is what the wireframe modes are judged on.
+        .init(file: "manifold.step", triangles: 0, size: [140, 90, 34],
+              vertices: nil, sharpEdges: true),
         // A CAD part: the triangle count depends on tessellation, so only the
         // dimensions are checked — those are exact.
         .init(file: "bracket.step",   triangles: 0,    size: [60, 40, 15], vertices: nil, sharpEdges: false),

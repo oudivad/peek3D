@@ -233,9 +233,10 @@ dmg: app
 	@# Sample files in the image: without them a tester's first task is to go
 	@# find a 3D model, and many stop right there.
 	@mkdir -p $(BUILD)/dmg/Samples
-	@cp Tests/fixtures/bracket.step Tests/fixtures/sphere.stl \
-	    Tests/fixtures/cube.3mf Tests/fixtures/cube.obj \
-	    Tests/fixtures/cube_bin.ply $(BUILD)/dmg/Samples/ 2>/dev/null || true
+	@cp Tests/fixtures/manifold.step Tests/fixtures/bracket.step \
+	    Tests/fixtures/sphere.stl Tests/fixtures/cube.3mf \
+	    Tests/fixtures/cube.obj Tests/fixtures/cube_bin.ply \
+	    $(BUILD)/dmg/Samples/ 2>/dev/null || true
 	@[ -f TESTING.md ] && cp TESTING.md $(BUILD)/dmg/ || true
 	@hdiutil create -quiet -volname "$(APP) $(VERSION)" -srcfolder $(BUILD)/dmg \
 		-ov -format UDZO $(BUILD)/$(APP)-$(VERSION).dmg

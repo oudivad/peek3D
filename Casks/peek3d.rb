@@ -20,7 +20,7 @@ cask "peek3d" do
   version "1.0.0"
   # Checksum of the .dmg attached to the matching GitHub release. Recompute it
   # for every version with:  shasum -a 256 Peek3D-<version>.dmg
-  sha256 "24f4de688d58866ac1a1c0dd7f3294fa6a6e7b1a3f87bc10c34458c25f43fdf2"
+  sha256 "d0e4f76539a0eac764fe825a87a0f534d1099473f9af585a5535405ccb4bd713"
 
   url "https://github.com/oudivad/peek3d/releases/download/v#{version}/Peek3D-#{version}.dmg"
   name "Peek3D"
