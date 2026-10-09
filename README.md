@@ -26,12 +26,6 @@ Requires **macOS 13 (Ventura) or later**, on Apple Silicon.
 > will not be asked again. The [Signing](#signing-and-what-it-costs) section
 > explains why, and what the alternatives are.
 
-Or, with Homebrew:
-
-```sh
-brew install --cask --no-quarantine oudivad/tap/peek3d
-```
-
 Supported formats:
 
 | Format | Extensions | Kind |
@@ -148,32 +142,22 @@ $ spctl -a -t exec -vv /Applications/Peek3D.app
 ```
 
 That does *not* prevent distribution — it only means macOS will not vouch for
-you, so your users have to say they trust you. Three routes, in increasing
-order of cost:
+you, so your users have to say they trust you once. Two routes:
 
-1. **Homebrew without quarantine.** The quarantine flag is what triggers the
-   Gatekeeper prompt; skipping it removes the friction entirely, at the price
-   of asking users to trust the tap.
-
-   ```sh
-   brew install --cask --no-quarantine oudivad/tap/peek3d
-   ```
-
-   The address reads *user / tap / cask*: the middle part is the repository
-   holding the recipes, which Homebrew expects to be named `homebrew-tap`, and
-   the last word is the recipe. No `brew tap` beforehand — Homebrew taps on
-   sight of a three-part address. `Casks/peek3d.rb` here is the recipe to copy
-   into that repository.
-
-2. **Plain download.** The user drags the app to /Applications, then approves
-   it once under System Settings › Privacy & Security › *Open Anyway*. Or, in
+1. **Approve it once.** The user drags the app to /Applications, opens it, and
+   allows it under System Settings › Privacy & Security › *Open Anyway*. Or, in
    one command:
 
    ```sh
    xattr -dr com.apple.quarantine /Applications/Peek3D.app
    ```
 
-3. **Developer ID and notarization** ($99/year). No prompt, no instructions to
+   A Homebrew cask installed with `--no-quarantine` would skip the prompt
+   altogether, since the quarantine flag is what triggers it. That means a
+   second repository to keep in step with every release, which is a real cost
+   for a one-off download.
+
+2. **Developer ID and notarization** ($99/year). No prompt, no instructions to
    read, nothing to explain. This is what most polished Mac apps do, free ones
    included — their maintainer or sponsor pays for it.
 
