@@ -10,6 +10,10 @@ part appears and turns. It handles `.stl`, `.obj`, `.ply`, `.3mf`, `.step` and
 
 Open `Peek3D.dmg` and drag **Peek3D** onto the **Applications** shortcut.
 
+Then open it from **Applications**, not from the disk image — and eject the
+image. Launched from the image, Peek3D registers its extension at a path on
+that volume, and previews break as soon as you eject it.
+
 ## 2. Get past Gatekeeper
 
 Peek3D is not notarized — that needs a paid Apple certificate — so macOS will

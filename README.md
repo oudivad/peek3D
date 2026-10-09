@@ -13,6 +13,11 @@ page. **There is nothing to build.** Open the disk image, drag **Peek3D** onto
 **Applications**, then launch it once — that is when macOS discovers the
 preview extension. You can quit it straight away; previews keep working.
 
+> **Do not run Peek3D from the mounted disk image.** Drag it to Applications
+> first, then open it from there. Launching it from the image registers the
+> extension at a path on that volume; once the image is ejected the path is
+> gone, and previews fail with "the extension could not be found".
+
 Requires **macOS 13 (Ventura) or later**, on Apple Silicon.
 
 > **The first launch will be refused.** Peek3D is not notarized — that needs a

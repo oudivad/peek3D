@@ -14,6 +14,11 @@ page. **Il n'y a rien à compiler.** Ouvrez l'archive, glissez **Peek3D** sur
 macOS découvre l'extension d'aperçu. Vous pouvez la refermer aussitôt, les
 aperçus continuent de fonctionner.
 
+> **Ne lancez pas Peek3D depuis l'archive montée.** Glissez-la d'abord dans
+> Applications, puis ouvrez-la de là. La lancer depuis l'archive enregistre
+> l'extension à un chemin situé sur ce volume ; une fois l'archive éjectée, ce
+> chemin n'existe plus et les aperçus échouent sur « extension introuvable ».
+
 Nécessite **macOS 13 (Ventura) ou plus récent**, sur Apple Silicon.
 
 > **Le premier lancement sera refusé.** Peek3D n'est pas notarisé — cela exige

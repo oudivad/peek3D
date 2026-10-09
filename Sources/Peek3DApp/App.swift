@@ -37,8 +37,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
 
+        // The window takes its height from the panel: the help text wraps to
+        // one line or two depending on the language, and a fixed height would
+        // either clip it or leave a gap.
+        let width: CGFloat = 460
+        status.translatesAutoresizingMaskIntoConstraints = false
+        let measure = status.widthAnchor.constraint(equalToConstant: width)
+        measure.isActive = true
+        status.layoutSubtreeIfNeeded()
+        let height = status.fittingSize.height
+        // The constraint was only ever a measuring stick: left in place it
+        // would fight the window over the content view's size.
+        measure.isActive = false
+        status.translatesAutoresizingMaskIntoConstraints = true
+
         let created = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 420),
+            contentRect: NSRect(x: 0, y: 0, width: width, height: height),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered, defer: false)
         created.title = "Peek3D"
@@ -204,20 +218,24 @@ final class StatusView: NSView {
         quickLookBox.target = NSApp.delegate
         quickLookBox.action = #selector(AppDelegate.togglePreviewHandover)
 
+        // `NSTextField(labelWithString:)` clips rather than wraps, whatever
+        // `maximumNumberOfLines` says. Wrapping needs the line break mode and a
+        // width to wrap against — which the stack gives it below.
         func help(_ key: String) -> NSTextField {
-            let field = NSTextField(labelWithString: L(key))
+            let field = NSTextField(wrappingLabelWithString: L(key))
             field.font = .systemFont(ofSize: 11)
             field.textColor = .tertiaryLabelColor
-            field.maximumNumberOfLines = 0
-            field.preferredMaxLayoutWidth = 380
+            field.isSelectable = false
+            field.setContentCompressionResistancePriority(.required, for: .vertical)
             return field
         }
+        let quickLookHelp = help("status.quicklook.help")
 
         let stack = NSStackView(views: [
             icon, heading, hint,
             separator(), formatsTitle, formats,
             separator(), settingsTitle,
-            quickLookBox, help("status.quicklook.help"),
+            quickLookBox, quickLookHelp,
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -226,8 +244,9 @@ final class StatusView: NSView {
         addSubview(stack)
 
         // The header is centred and the rest left-aligned: a settings panel
-        // reads badly when everything is centred.
-        for view in [icon, heading, hint] {
+        // reads badly when everything is centred. The wrapping label needs the
+        // same full width, or it has nothing to wrap against.
+        for view in [icon, heading, hint, quickLookHelp] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
         icon.heightAnchor.constraint(equalToConstant: 72).isActive = true
@@ -239,6 +258,9 @@ final class StatusView: NSView {
             stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 28),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -28),
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 24),
+            // Pinning the bottom too is what lets the window size itself to the
+            // text instead of leaving a stretch of empty panel below it.
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -24),
         ])
     }
 
