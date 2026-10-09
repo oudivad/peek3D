@@ -46,18 +46,38 @@
 "wireframe.mode.edges"     = "Sharp edges";
 "wireframe.mode.triangles" = "All triangles";
 "wireframe.opacity"     = "Line opacity";
+
+/* Wireframe line colours */
 "wireframe.colour.automatic" = "Auto";
-"wireframe.colour.black" = "Black";
-"wireframe.colour.white" = "White";
-"wireframe.colour.grey" = "Grey";
-"wireframe.colour.blue" = "Blue";
-"wireframe.colour.red"  = "Red";
+"wireframe.colour.black"   = "Black";
+"wireframe.colour.white"   = "White";
+"wireframe.colour.grey"    = "Grey";
+"wireframe.colour.red"     = "Red";
+"wireframe.colour.orange"  = "Orange";
+"wireframe.colour.yellow"  = "Yellow";
+"wireframe.colour.green"   = "Green";
+"wireframe.colour.cyan"    = "Cyan";
+"wireframe.colour.blue"    = "Blue";
+"wireframe.colour.purple"  = "Purple";
+"wireframe.colour.magenta" = "Magenta";
 
 /* The surface the part is rendered in */
 "surface.light"    = "Light grey";
 "surface.white"    = "White";
+"surface.black"    = "Black";
 "surface.graphite" = "Graphite";
+"surface.red"      = "Red";
+"surface.orange"   = "Orange";
+"surface.yellow"   = "Yellow";
+"surface.green"    = "Green";
+"surface.teal"     = "Teal";
+"surface.blue"     = "Blue";
+"surface.purple"   = "Purple";
+"surface.pink"     = "Pink";
 "surface.steel"    = "Steel";
 "surface.brass"    = "Brass";
 "surface.copper"   = "Copper";
-"surface.blue"     = "Blue";
+
+/* The ? in the corner of the preview */
+"help.title" = "How to use this";
+"help.body"  = "Drag to turn the part.\n\nPinch, or scroll with two fingers, to zoom. Hold Fn if that scrolls the window instead.\n\nLeave it alone and it turns by itself.\n\nOn a dense mesh, Sharp edges stays readable where All triangles does not.";

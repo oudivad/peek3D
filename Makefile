@@ -194,7 +194,10 @@ reset-quicklook:
 test: $(OBJ)/occt_bridge.o
 	@mkdir -p $(BUILD)
 	@# For a bare executable, Bundle.main is the directory holding it, so the
-	@# translations have to sit there for the tests to see them.
+	@# strings have to sit there for the tests to see them. The stale copies go
+	@# first: a table at the resource root shadows every .lproj beside it, and a
+	@# leftover from an earlier run would be read in preference to this one.
+	@rm -rf $(BUILD)/*.lproj $(BUILD)/Localizable.strings
 	@cp -R Resources/*.lproj $(BUILD)/
 	@swiftc $(SWIFTFLAGS) -parse-as-library -module-name Peek3DTests \
 		-o $(BUILD)/peek3d-test $(KIT_SOURCES) Tests/LoaderTests.swift \

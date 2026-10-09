@@ -13,6 +13,8 @@ public class Peek3DView: NSView {
     private let backdrop = CAGradientLayer()
     private let infoLabel = NSTextField(labelWithString: "")
     private let infoBackdrop = NSVisualEffectView()
+    private let helpButton = NSButton()
+    private let helpBackdrop = NSVisualEffectView()
     private var pivot: SCNNode?
     private let wireframeBackdrop = NSVisualEffectView()
     private let modeChoice = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -100,7 +102,53 @@ public class Peek3DView: NSView {
         // rather than force the layout to break a constraint.
         infoLabel.lineBreakMode = .byTruncatingTail
         infoLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        infoBackdrop.addSubview(infoLabel)
+
+        helpButton.translatesAutoresizingMaskIntoConstraints = false
+        helpButton.image = NSImage(systemSymbolName: "questionmark.circle",
+                                   accessibilityDescription: L("help.title"))
+        helpButton.isBordered = false
+        helpButton.imagePosition = .imageOnly
+        helpButton.contentTintColor = .secondaryLabelColor
+        helpButton.target = self
+        helpButton.action = #selector(toggleHelp)
+        helpButton.toolTip = L("help.title")
+        helpButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let info = NSStackView(views: [helpButton, infoLabel])
+        info.orientation = .horizontal
+        info.spacing = 7
+        info.translatesAutoresizingMaskIntoConstraints = false
+        infoBackdrop.addSubview(info)
+
+        // The help panel is drawn inside this view rather than shown in a
+        // popover: an extension's panel comes and goes with the space bar, and
+        // anything that opens a window of its own sits badly with that.
+        helpBackdrop.translatesAutoresizingMaskIntoConstraints = false
+        helpBackdrop.material = .hudWindow
+        helpBackdrop.blendingMode = .withinWindow
+        helpBackdrop.state = .active
+        helpBackdrop.wantsLayer = true
+        helpBackdrop.layer?.cornerRadius = 9
+        helpBackdrop.layer?.masksToBounds = true
+        helpBackdrop.isHidden = true
+        addSubview(helpBackdrop)
+
+        let helpText = NSTextField(wrappingLabelWithString: L("help.body"))
+        helpText.font = .systemFont(ofSize: 11)
+        helpText.textColor = .labelColor
+        helpText.isSelectable = false
+        helpText.translatesAutoresizingMaskIntoConstraints = false
+        helpBackdrop.addSubview(helpText)
+
+        NSLayoutConstraint.activate([
+            helpBackdrop.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            helpBackdrop.bottomAnchor.constraint(equalTo: infoBackdrop.topAnchor, constant: -8),
+            helpBackdrop.widthAnchor.constraint(equalToConstant: 300),
+            helpText.topAnchor.constraint(equalTo: helpBackdrop.topAnchor, constant: 10),
+            helpText.bottomAnchor.constraint(equalTo: helpBackdrop.bottomAnchor, constant: -10),
+            helpText.leadingAnchor.constraint(equalTo: helpBackdrop.leadingAnchor, constant: 12),
+            helpText.trailingAnchor.constraint(equalTo: helpBackdrop.trailingAnchor, constant: -12),
+        ])
 
         wireframeBackdrop.translatesAutoresizingMaskIntoConstraints = false
         wireframeBackdrop.material = .hudWindow
@@ -194,10 +242,10 @@ public class Peek3DView: NSView {
             infoBackdrop.trailingAnchor.constraint(
                 lessThanOrEqualTo: wireframeBackdrop.leadingAnchor, constant: -8),
 
-            infoLabel.topAnchor.constraint(equalTo: infoBackdrop.topAnchor, constant: 4),
-            infoLabel.bottomAnchor.constraint(equalTo: infoBackdrop.bottomAnchor, constant: -4),
-            infoLabel.leadingAnchor.constraint(equalTo: infoBackdrop.leadingAnchor, constant: 9),
-            infoLabel.trailingAnchor.constraint(equalTo: infoBackdrop.trailingAnchor, constant: -9),
+            info.topAnchor.constraint(equalTo: infoBackdrop.topAnchor, constant: 4),
+            info.bottomAnchor.constraint(equalTo: infoBackdrop.bottomAnchor, constant: -4),
+            info.leadingAnchor.constraint(equalTo: infoBackdrop.leadingAnchor, constant: 8),
+            info.trailingAnchor.constraint(equalTo: infoBackdrop.trailingAnchor, constant: -9),
         ])
     }
 
@@ -266,10 +314,15 @@ public class Peek3DView: NSView {
         currentMesh = nil
         wireframeBackdrop.isHidden = true
         surfaceBackdrop.isHidden = true
+        helpBackdrop.isHidden = true
         infoBackdrop.isHidden = false
         infoLabel.stringValue = (filename.map { "\($0)   ·   " } ?? "")
             + (error.localizedDescription)
         infoLabel.textColor = .systemRed
+    }
+
+    @objc private func toggleHelp() {
+        helpBackdrop.isHidden.toggle()
     }
 
     // MARK: Settings

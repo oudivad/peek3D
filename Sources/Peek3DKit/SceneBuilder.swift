@@ -3,22 +3,32 @@ import SceneKit
 import simd
 import AppKit
 
-/// The colours offered for the wireframe. A short list rather than the system
-/// colour picker: that opens a window of its own, which is a poor fit for a
-/// preview panel that comes and goes with the space bar.
+/// The colours offered for the wireframe. A list rather than the system colour
+/// picker: that opens a window of its own, which is a poor fit for a preview
+/// panel that comes and goes with the space bar.
 public enum WireframeStyle: String, CaseIterable, Sendable {
-    case automatic, black, white, grey, blue, red
+    case automatic, black, white, grey
+    case red, orange, yellow, green, cyan, blue, purple, magenta
 
     /// `automatic` follows the panel: dark lines on a light background, light
     /// lines on a dark one.
     public func color(dark: Bool) -> NSColor {
+        func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> NSColor {
+            NSColor(calibratedRed: r, green: g, blue: b, alpha: 1)
+        }
         switch self {
-        case .automatic: return dark ? NSColor(white: 0.92, alpha: 1) : NSColor(white: 0.12, alpha: 1)
+        case .automatic: return NSColor(white: dark ? 0.92 : 0.12, alpha: 1)
         case .black:     return NSColor(white: 0.05, alpha: 1)
         case .white:     return NSColor(white: 0.97, alpha: 1)
-        case .grey:      return NSColor(white: 0.5, alpha: 1)
-        case .blue:      return NSColor(calibratedRed: 0.15, green: 0.45, blue: 0.9, alpha: 1)
-        case .red:       return NSColor(calibratedRed: 0.85, green: 0.2, blue: 0.2, alpha: 1)
+        case .grey:      return NSColor(white: 0.50, alpha: 1)
+        case .red:       return rgb(0.85, 0.20, 0.20)
+        case .orange:    return rgb(0.93, 0.52, 0.13)
+        case .yellow:    return rgb(0.93, 0.80, 0.15)
+        case .green:     return rgb(0.22, 0.70, 0.30)
+        case .cyan:      return rgb(0.15, 0.72, 0.80)
+        case .blue:      return rgb(0.15, 0.45, 0.90)
+        case .purple:    return rgb(0.55, 0.35, 0.85)
+        case .magenta:   return rgb(0.85, 0.25, 0.70)
         }
     }
 
@@ -32,20 +42,37 @@ public enum WireframeMode: String, CaseIterable, Sendable {
     public var label: String { L("wireframe.mode.\(rawValue)") }
 }
 
-/// The surface the part is rendered in. Metalness and roughness move with the
-/// colour: brass that shades like plastic looks like neither.
+/// The surface the part is rendered in.
+///
+/// The spread is deliberate: filament colours for anyone looking at a print,
+/// and three metals for anyone looking at a machined part. Metalness and
+/// roughness move with the colour, since brass that shades like plastic looks
+/// like neither.
 public enum SurfaceStyle: String, CaseIterable, Sendable {
-    case light, white, graphite, steel, brass, copper, blue
+    case light, white, black, graphite
+    case red, orange, yellow, green, teal, blue, purple, pink
+    case steel, brass, copper
 
     var colour: NSColor {
+        func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> NSColor {
+            NSColor(calibratedRed: r, green: g, blue: b, alpha: 1)
+        }
         switch self {
-        case .light:    return NSColor(calibratedRed: 0.82, green: 0.84, blue: 0.87, alpha: 1)
-        case .white:    return NSColor(calibratedWhite: 0.95, alpha: 1)
-        case .graphite: return NSColor(calibratedWhite: 0.28, alpha: 1)
-        case .steel:    return NSColor(calibratedRed: 0.70, green: 0.72, blue: 0.75, alpha: 1)
-        case .brass:    return NSColor(calibratedRed: 0.76, green: 0.62, blue: 0.29, alpha: 1)
-        case .copper:   return NSColor(calibratedRed: 0.72, green: 0.44, blue: 0.30, alpha: 1)
-        case .blue:     return NSColor(calibratedRed: 0.36, green: 0.52, blue: 0.72, alpha: 1)
+        case .light:    return rgb(0.82, 0.84, 0.87)
+        case .white:    return rgb(0.95, 0.95, 0.95)
+        case .black:    return rgb(0.13, 0.13, 0.14)
+        case .graphite: return rgb(0.30, 0.31, 0.33)
+        case .red:      return rgb(0.76, 0.22, 0.20)
+        case .orange:   return rgb(0.88, 0.47, 0.16)
+        case .yellow:   return rgb(0.89, 0.74, 0.20)
+        case .green:    return rgb(0.32, 0.60, 0.33)
+        case .teal:     return rgb(0.22, 0.60, 0.60)
+        case .blue:     return rgb(0.30, 0.49, 0.75)
+        case .purple:   return rgb(0.50, 0.37, 0.70)
+        case .pink:     return rgb(0.85, 0.47, 0.62)
+        case .steel:    return rgb(0.70, 0.72, 0.75)
+        case .brass:    return rgb(0.76, 0.62, 0.29)
+        case .copper:   return rgb(0.72, 0.44, 0.30)
         }
     }
 

@@ -144,7 +144,15 @@ enum LoaderTests {
 
         // An unresolved string gives itself away by returning its own key, which
         // is what happens when the strings table was not copied into the bundle.
-        for key in ["error.empty", "menu.handover", "handover.title"] where L(key) == key {
+        // Every list in the preview is driven by an enum, and every case needs a
+        // line in the table. Building the keys the same way the enums do is what
+        // catches the case someone adds without its wording.
+        var keys = ["error.empty", "menu.handover", "handover.title", "help.title", "help.body"]
+        keys += WireframeMode.allCases.map { "wireframe.mode.\($0.rawValue)" }
+        keys += WireframeStyle.allCases.map { "wireframe.colour.\($0.rawValue)" }
+        keys += SurfaceStyle.allCases.map { "surface.\($0.rawValue)" }
+
+        for key in keys where L(key) == key {
             print("  ✗ missing translation for \"\(key)\"")
             failures += 1
         }
