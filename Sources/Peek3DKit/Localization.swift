@@ -1,11 +1,16 @@
 import Foundation
 
-/// Access to localized strings.
+/// Access to the strings the user sees.
+///
+/// They live in one table rather than scattered through the code, which is what
+/// makes them reviewable in one pass. Peek3D ships in English only; the lookup
+/// goes through `NSLocalizedString` all the same, so adding a language is a
+/// matter of adding a file.
 ///
 /// `Bundle.main` is the current process's bundle: the app for the window, but
 /// the extension itself when the code runs inside an `.appex`. Every bundle
-/// therefore ships its own copy of the translations, and no caller needs to
-/// know where it is running.
+/// therefore carries its own copy of the table, and no caller needs to know
+/// where it is running.
 @inline(__always)
 public func L(_ key: String) -> String {
     NSLocalizedString(key, bundle: .main, comment: "")

@@ -108,15 +108,39 @@ public class Peek3DView: NSView {
         wireframeToggle.font = .systemFont(ofSize: 11)
         wireframeToggle.target = self
         wireframeToggle.action = #selector(toggleWireframe)
-        wireframeBackdrop.addSubview(wireframeToggle)
+
+        colourChoice.translatesAutoresizingMaskIntoConstraints = false
+        colourChoice.controlSize = .small
+        colourChoice.font = .systemFont(ofSize: 11)
+        colourChoice.target = self
+        colourChoice.action = #selector(restyleWireframe)
+        for style in WireframeStyle.allCases {
+            colourChoice.addItem(withTitle: style.label)
+            colourChoice.lastItem?.representedObject = style.rawValue
+        }
+
+        opacitySlider.translatesAutoresizingMaskIntoConstraints = false
+        opacitySlider.controlSize = .small
+        opacitySlider.target = self
+        opacitySlider.action = #selector(restyleWireframe)
+        opacitySlider.toolTip = L("wireframe.opacity")
+
+        // Colour and opacity only appear once the wireframe is on: three
+        // controls in the corner of a preview is as much as it will take.
+        let controls = NSStackView(views: [wireframeToggle, colourChoice, opacitySlider])
+        controls.orientation = .horizontal
+        controls.spacing = 8
+        controls.translatesAutoresizingMaskIntoConstraints = false
+        wireframeBackdrop.addSubview(controls)
 
         NSLayoutConstraint.activate([
             wireframeBackdrop.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             wireframeBackdrop.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
-            wireframeToggle.topAnchor.constraint(equalTo: wireframeBackdrop.topAnchor, constant: 3),
-            wireframeToggle.bottomAnchor.constraint(equalTo: wireframeBackdrop.bottomAnchor, constant: -3),
-            wireframeToggle.leadingAnchor.constraint(equalTo: wireframeBackdrop.leadingAnchor, constant: 8),
-            wireframeToggle.trailingAnchor.constraint(equalTo: wireframeBackdrop.trailingAnchor, constant: -9),
+            controls.topAnchor.constraint(equalTo: wireframeBackdrop.topAnchor, constant: 3),
+            controls.bottomAnchor.constraint(equalTo: wireframeBackdrop.bottomAnchor, constant: -3),
+            controls.leadingAnchor.constraint(equalTo: wireframeBackdrop.leadingAnchor, constant: 8),
+            controls.trailingAnchor.constraint(equalTo: wireframeBackdrop.trailingAnchor, constant: -9),
+            opacitySlider.widthAnchor.constraint(equalToConstant: 70),
         ])
 
         NSLayoutConstraint.activate([

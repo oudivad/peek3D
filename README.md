@@ -32,8 +32,6 @@ Or, with Homebrew:
 brew install --cask --no-quarantine oudivad/tap/peek3d
 ```
 
-*[Version française](README.fr.md)*
-
 Supported formats:
 
 | Format | Extensions | Kind |

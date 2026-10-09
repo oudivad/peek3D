@@ -111,8 +111,33 @@ enum LoaderTests {
             }
         }
 
+        // The preview's controls are built in code with no storyboard to check
+        // them against: a mis-applied edit once left the colour list and the
+        // opacity slider as properties that no view ever contained. Nothing
+        // failed to compile, and the checkbox simply did nothing.
+        let preview = Peek3DView(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
+        if let mesh = try? MeshDocument.load(url: root.appendingPathComponent("sphere.stl")) {
+            preview.show(mesh: mesh, filename: "sphere.stl")
+            func descendants(_ view: NSView) -> [NSView] {
+                view.subviews + view.subviews.flatMap(descendants)
+            }
+            let controls = descendants(preview)
+            let missing = [
+                controls.contains { $0 is NSPopUpButton } ? nil : "colour list",
+                controls.contains { $0 is NSSlider } ? nil : "opacity slider",
+                controls.contains { ($0 as? NSButton)?.allowsMixedState == false
+                                    && $0 is NSButton && !($0 is NSPopUpButton) } ? nil : "checkbox",
+            ].compactMap { $0 }
+            if missing.isEmpty {
+                print("  ✓ preview controls present")
+            } else {
+                print("  ✗ preview is missing its \(missing.joined(separator: ", "))")
+                failures += 1
+            }
+        }
+
         // An unresolved string gives itself away by returning its own key, which
-        // is what happens when an .lproj was not copied into the bundle.
+        // is what happens when the strings table was not copied into the bundle.
         for key in ["error.empty", "menu.handover", "handover.title"] where L(key) == key {
             print("  ✗ missing translation for \"\(key)\"")
             failures += 1

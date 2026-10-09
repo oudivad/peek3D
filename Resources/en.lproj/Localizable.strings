@@ -1,4 +1,7 @@
-/* Peek3D — base language. The French translation lives in fr.lproj.
+/* Every string the user ever sees, in one file.
+   Peek3D ships in English only, on purpose: one build, one wording, one thing
+   to check. Adding a language means adding an .lproj beside this one — the
+   Makefile copies whatever it finds into all three bundles.
    Keep these short. Everything here is read in passing, in a panel or an
    alert someone wants to dismiss. */
 

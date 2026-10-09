@@ -116,7 +116,7 @@ $(APP_DIR): $(OBJ)/occt_bridge.o $(KIT_SOURCES) $(APP_SOURCES) $(QL_SOURCES) $(T
 	@$(SUBST) Resources/Thumbnail-Info.plist > $(TH_DIR)/Contents/Info.plist
 	@[ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns $(CONTENTS)/Resources/ || true
 
-	@# Every bundle carries its own copy of the translations: inside an
+	@# Every bundle carries its own copy of the strings table: inside an
 	@# extension, Bundle.main is the extension, not the app containing it.
 	@for dir in $(CONTENTS) $(QL_DIR)/Contents $(TH_DIR)/Contents; do \
 		mkdir -p $$dir/Resources; \
