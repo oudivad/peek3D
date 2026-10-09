@@ -6,6 +6,10 @@
 
 <p align="center">Quick Look previews for 3D and CAD files on macOS.</p>
 
+<p align="center">
+  <img src="docs/images/demo.gif" width="860" alt="Previewing a STEP file in the Finder: wireframe modes, zooming into the mesh, changing the surface colour.">
+</p>
+
 ---
 
 Press space on an `.stl`, `.obj`, `.ply`, `.3mf`, `.step` or `.iges` file in the
