@@ -39,3 +39,10 @@
 
 /* Preview controls */
 "preview.wireframe"     = "Fil de fer";
+"wireframe.opacity"     = "Opacité des traits";
+"wireframe.colour.automatic" = "Auto";
+"wireframe.colour.black" = "Noir";
+"wireframe.colour.white" = "Blanc";
+"wireframe.colour.grey" = "Gris";
+"wireframe.colour.blue" = "Bleu";
+"wireframe.colour.red"  = "Rouge";

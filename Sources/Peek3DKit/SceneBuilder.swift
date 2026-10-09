@@ -3,6 +3,28 @@ import SceneKit
 import simd
 import AppKit
 
+/// The colours offered for the wireframe. A short list rather than the system
+/// colour picker: that opens a window of its own, which is a poor fit for a
+/// preview panel that comes and goes with the space bar.
+public enum WireframeStyle: String, CaseIterable, Sendable {
+    case automatic, black, white, grey, blue, red
+
+    /// `automatic` follows the panel: dark lines on a light background, light
+    /// lines on a dark one.
+    public func color(dark: Bool) -> NSColor {
+        switch self {
+        case .automatic: return dark ? NSColor(white: 0.92, alpha: 1) : NSColor(white: 0.12, alpha: 1)
+        case .black:     return NSColor(white: 0.05, alpha: 1)
+        case .white:     return NSColor(white: 0.97, alpha: 1)
+        case .grey:      return NSColor(white: 0.5, alpha: 1)
+        case .blue:      return NSColor(calibratedRed: 0.15, green: 0.45, blue: 0.9, alpha: 1)
+        case .red:       return NSColor(calibratedRed: 0.85, green: 0.2, blue: 0.2, alpha: 1)
+        }
+    }
+
+    public var label: String { L("wireframe.colour.\(rawValue)") }
+}
+
 /// Turns a `Mesh` into a SceneKit scene ready to display.
 public enum SceneBuilder {
 
@@ -100,18 +122,13 @@ public enum SceneBuilder {
         let copy = shape.copy() as! SCNGeometry
         let lines = SCNMaterial()
         lines.fillMode = .lines
-        // `.constant` still takes ambient light into account, which washed the
-        // lines out to a pale grey. Emission ignores lighting entirely, so the
-        // colour asked for is the colour drawn.
         lines.lightingModel = .constant
         lines.diffuse.contents = NSColor.black
-        lines.emission.contents = dark
-            ? NSColor(white: 0.92, alpha: 1)
-            : NSColor(white: 0.12, alpha: 1)
-        lines.transparency = 0.65
         lines.writesToDepthBuffer = false
         lines.isDoubleSided = true
         copy.materials = [lines]
+
+        style(copy, color: WireframeStyle.automatic.color(dark: dark), opacity: 0.65)
 
         let node = SCNNode(geometry: copy)
         node.name = wireframeName
@@ -126,6 +143,18 @@ public enum SceneBuilder {
         node.transform = transform
         node.isHidden = true
         return node
+    }
+
+    /// Restyles the wireframe in place. Colour and opacity are viewer
+    /// settings, so they change between previews without rebuilding the scene.
+    ///
+    /// `.constant` still takes ambient light into account, which washes the
+    /// lines out to a pale grey. Emission ignores lighting entirely, so the
+    /// colour asked for is the colour drawn.
+    public static func style(_ geometry: SCNGeometry, color: NSColor, opacity: CGFloat) {
+        guard let material = geometry.firstMaterial else { return }
+        material.emission.contents = color
+        material.transparency = max(0.05, min(1, opacity))
     }
 
     public static func material() -> SCNMaterial {

@@ -16,10 +16,18 @@ public class Peek3DView: NSView {
     private var pivot: SCNNode?
     private let wireframeToggle = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let wireframeBackdrop = NSVisualEffectView()
+    private let colourChoice = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let opacitySlider = NSSlider(value: 0.65, minValue: 0.1, maxValue: 1,
+                                         target: nil, action: nil)
+    private var isDark = false
 
-    /// The choice follows the viewer from one file to the next. An extension
-    /// has its own defaults container, so this touches nothing else.
+    /// These choices follow the viewer from one file to the next. An extension
+    /// has its own defaults container, so this touches nothing else — and it
+    /// cannot read the host application's settings either, which is why the
+    /// controls live in the preview rather than in a preferences window.
     private static let wireframeKey = "ShowWireframe"
+    private static let colourKey = "WireframeColour"
+    private static let opacityKey = "WireframeOpacity"
     /// Bumped on every gesture: a scheduled resume that a newer gesture has
     /// superseded is recognizable by its stale number.
     private var interactionGeneration = 0
@@ -158,6 +166,7 @@ public class Peek3DView: NSView {
 
     public func show(mesh: Mesh, filename: String?) {
         let dark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        isDark = dark
         let scene = SceneBuilder.scene(for: mesh, darkBackground: dark)
 
         sceneView.scene = scene
@@ -178,10 +187,21 @@ public class Peek3DView: NSView {
         // Above the triangle limit no wireframe is built, and the checkbox goes
         // with it: offering a control that does nothing is worse than no control.
         wireframeBackdrop.isHidden = wire == nil
-        if let wire {
-            let on = UserDefaults.standard.bool(forKey: Self.wireframeKey)
+        if wire != nil {
+            let defaults = UserDefaults.standard
+            let on = defaults.bool(forKey: Self.wireframeKey)
             wireframeToggle.state = on ? .on : .off
-            wire.isHidden = !on
+
+            let stored = defaults.string(forKey: Self.colourKey)
+            let style = stored.flatMap(WireframeStyle.init(rawValue:)) ?? .automatic
+            colourChoice.selectItem(at: WireframeStyle.allCases.firstIndex(of: style) ?? 0)
+
+            // `double(forKey:)` gives 0 for an absent key, which would mean an
+            // invisible wireframe on the very first preview.
+            let opacity = defaults.object(forKey: Self.opacityKey) as? Double ?? 0.65
+            opacitySlider.doubleValue = opacity
+
+            applyWireframeSettings()
         }
 
         var parts = [mesh.sourceFormat,
@@ -202,11 +222,35 @@ public class Peek3DView: NSView {
     }
 
     @objc private func toggleWireframe() {
+        UserDefaults.standard.set(wireframeToggle.state == .on, forKey: Self.wireframeKey)
+        applyWireframeSettings()
+    }
+
+    @objc private func restyleWireframe() {
+        let style = colourChoice.selectedItem?.representedObject as? String
+        UserDefaults.standard.set(style, forKey: Self.colourKey)
+        UserDefaults.standard.set(opacitySlider.doubleValue, forKey: Self.opacityKey)
+        applyWireframeSettings()
+    }
+
+    /// Pushes the three settings onto the scene and the controls at once, so
+    /// there is one path to get right rather than three.
+    private func applyWireframeSettings() {
+        guard let wire = sceneView.scene?.rootNode
+            .childNode(withName: SceneBuilder.wireframeName, recursively: true) else { return }
+
         let on = wireframeToggle.state == .on
-        UserDefaults.standard.set(on, forKey: Self.wireframeKey)
-        sceneView.scene?.rootNode
-            .childNode(withName: SceneBuilder.wireframeName, recursively: true)?
-            .isHidden = !on
+        wire.isHidden = !on
+        colourChoice.isHidden = !on
+        opacitySlider.isHidden = !on
+
+        let style = (colourChoice.selectedItem?.representedObject as? String)
+            .flatMap(WireframeStyle.init(rawValue:)) ?? .automatic
+        if let geometry = wire.geometry {
+            SceneBuilder.style(geometry,
+                               color: style.color(dark: isDark),
+                               opacity: CGFloat(opacitySlider.doubleValue))
+        }
     }
 
     // MARK: Idle rotation

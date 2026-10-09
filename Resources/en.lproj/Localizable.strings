@@ -39,3 +39,10 @@
 
 /* Preview controls */
 "preview.wireframe"     = "Wireframe";
+"wireframe.opacity"     = "Line opacity";
+"wireframe.colour.automatic" = "Auto";
+"wireframe.colour.black" = "Black";
+"wireframe.colour.white" = "White";
+"wireframe.colour.grey" = "Grey";
+"wireframe.colour.blue" = "Blue";
+"wireframe.colour.red"  = "Red";
