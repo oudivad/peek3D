@@ -77,6 +77,22 @@ enum LoaderTests {
                 if mesh.indices.count % 3 != 0 {
                     problems.append("index count is not a multiple of 3")
                 }
+                // The wireframe is built with the scene and hidden until the
+                // viewer asks for it; above the triangle limit it is not built
+                // at all, and the checkbox goes with it.
+                let scene = SceneBuilder.scene(for: mesh, darkBackground: false)
+                let wire = scene.rootNode.childNode(withName: SceneBuilder.wireframeName,
+                                                    recursively: true)
+                if mesh.triangleCount <= SceneBuilder.wireframeLimit {
+                    if wire == nil {
+                        problems.append("no wireframe node")
+                    } else if wire?.isHidden != true {
+                        problems.append("wireframe visible by default")
+                    }
+                } else if wire != nil {
+                    problems.append("wireframe built past the triangle limit")
+                }
+
                 // A render that fails silently would mean a blank thumbnail in
                 // the Finder, so check that an image actually comes out.
                 if Thumbnailer.image(for: mesh, size: CGSize(width: 64, height: 64), scale: 1) == nil {

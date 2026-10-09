@@ -36,3 +36,6 @@
 "handover.decline"      = "Keep macOS";
 "handover.failed"       = "Couldn't change the setting";
 "handover.failed.body"  = "In Terminal:\n\npluginkit -e %1$@ -i %2$@";
+
+/* Preview controls */
+"preview.wireframe"     = "Wireframe";

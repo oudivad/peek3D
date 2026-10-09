@@ -15,6 +15,13 @@ public enum SceneBuilder {
     /// Vertical field of view.
     static let fieldOfView: Float = 32
 
+    /// Name of the wireframe node, so the view can find and toggle it.
+    public static let wireframeName = "wireframe"
+
+    /// Past this many triangles a wireframe is a black smear and costs real
+    /// time to draw, so it is not built at all.
+    public static let wireframeLimit = 300_000
+
     /// Slack around the bounding sphere. Framing it exactly makes the part look
     /// like it is touching the edges of the Quick Look panel.
     static let framingMargin: Float = 1.12
@@ -22,9 +29,14 @@ public enum SceneBuilder {
     public static func scene(for mesh: Mesh, darkBackground: Bool) -> SCNScene {
         let scene = SCNScene()
 
-        let node = SCNNode(geometry: geometry(for: mesh))
+        let shape = geometry(for: mesh)
+        let node = SCNNode(geometry: shape)
         node.name = "model"
         normalize(node, mesh: mesh)
+
+        if mesh.triangleCount <= wireframeLimit {
+            node.addChildNode(wireframe(over: shape, center: mesh.center, dark: darkBackground))
+        }
 
         // A pivot separate from the model node lets the part spin about its
         // centre without disturbing its scale.
@@ -76,6 +88,44 @@ public enum SceneBuilder {
         let geometry = SCNGeometry(sources: [positions, normals], elements: [element])
         geometry.materials = [material()]
         return geometry
+    }
+
+    /// The mesh drawn as lines, over the solid part.
+    ///
+    /// SceneKit has no depth bias, so lines sharing their geometry with the
+    /// surface underneath would z-fight into a stipple. Growing the copy by a
+    /// fraction of a percent, about the model's own centre, lifts it clear
+    /// without any visible displacement.
+    static func wireframe(over shape: SCNGeometry, center: SIMD3<Float>, dark: Bool) -> SCNNode {
+        let copy = shape.copy() as! SCNGeometry
+        let lines = SCNMaterial()
+        lines.fillMode = .lines
+        // `.constant` still takes ambient light into account, which washed the
+        // lines out to a pale grey. Emission ignores lighting entirely, so the
+        // colour asked for is the colour drawn.
+        lines.lightingModel = .constant
+        lines.diffuse.contents = NSColor.black
+        lines.emission.contents = dark
+            ? NSColor(white: 0.92, alpha: 1)
+            : NSColor(white: 0.12, alpha: 1)
+        lines.transparency = 0.65
+        lines.writesToDepthBuffer = false
+        lines.isDoubleSided = true
+        copy.materials = [lines]
+
+        let node = SCNNode(geometry: copy)
+        node.name = wireframeName
+        node.renderingOrder = 10
+        // Scale about the model's own centre: translate the centre to the
+        // origin, grow, translate back. `pivot` would have displaced the
+        // content instead of only moving the point it scales around.
+        let growth: CGFloat = 1.0015
+        var transform = SCNMatrix4MakeTranslation(CGFloat(center.x), CGFloat(center.y), CGFloat(center.z))
+        transform = SCNMatrix4Scale(transform, growth, growth, growth)
+        transform = SCNMatrix4Translate(transform, CGFloat(-center.x), CGFloat(-center.y), CGFloat(-center.z))
+        node.transform = transform
+        node.isHidden = true
+        return node
     }
 
     public static func material() -> SCNMaterial {

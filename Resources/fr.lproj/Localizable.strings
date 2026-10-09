@@ -36,3 +36,6 @@
 "handover.decline"      = "Garder macOS";
 "handover.failed"       = "Réglage impossible à appliquer";
 "handover.failed.body"  = "Dans le Terminal :\n\npluginkit -e %1$@ -i %2$@";
+
+/* Preview controls */
+"preview.wireframe"     = "Fil de fer";

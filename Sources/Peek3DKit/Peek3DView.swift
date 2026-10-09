@@ -14,6 +14,12 @@ public class Peek3DView: NSView {
     private let infoLabel = NSTextField(labelWithString: "")
     private let infoBackdrop = NSVisualEffectView()
     private var pivot: SCNNode?
+    private let wireframeToggle = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let wireframeBackdrop = NSVisualEffectView()
+
+    /// The choice follows the viewer from one file to the next. An extension
+    /// has its own defaults container, so this touches nothing else.
+    private static let wireframeKey = "ShowWireframe"
     /// Bumped on every gesture: a scheduled resume that a newer gesture has
     /// superseded is recognizable by its stale number.
     private var interactionGeneration = 0
@@ -72,7 +78,38 @@ public class Peek3DView: NSView {
         infoLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         infoLabel.textColor = .secondaryLabelColor
         infoLabel.maximumNumberOfLines = 1
+        // In a narrow panel the info strip gives up its width to the toggle
+        // rather than force the layout to break a constraint.
+        infoLabel.lineBreakMode = .byTruncatingTail
+        infoLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         infoBackdrop.addSubview(infoLabel)
+
+        wireframeBackdrop.translatesAutoresizingMaskIntoConstraints = false
+        wireframeBackdrop.material = .hudWindow
+        wireframeBackdrop.blendingMode = .withinWindow
+        wireframeBackdrop.state = .active
+        wireframeBackdrop.wantsLayer = true
+        wireframeBackdrop.layer?.cornerRadius = 7
+        wireframeBackdrop.layer?.masksToBounds = true
+        wireframeBackdrop.isHidden = true
+        addSubview(wireframeBackdrop)
+
+        wireframeToggle.translatesAutoresizingMaskIntoConstraints = false
+        wireframeToggle.title = L("preview.wireframe")
+        wireframeToggle.setContentCompressionResistancePriority(.required, for: .horizontal)
+        wireframeToggle.font = .systemFont(ofSize: 11)
+        wireframeToggle.target = self
+        wireframeToggle.action = #selector(toggleWireframe)
+        wireframeBackdrop.addSubview(wireframeToggle)
+
+        NSLayoutConstraint.activate([
+            wireframeBackdrop.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            wireframeBackdrop.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+            wireframeToggle.topAnchor.constraint(equalTo: wireframeBackdrop.topAnchor, constant: 3),
+            wireframeToggle.bottomAnchor.constraint(equalTo: wireframeBackdrop.bottomAnchor, constant: -3),
+            wireframeToggle.leadingAnchor.constraint(equalTo: wireframeBackdrop.leadingAnchor, constant: 8),
+            wireframeToggle.trailingAnchor.constraint(equalTo: wireframeBackdrop.trailingAnchor, constant: -9),
+        ])
 
         NSLayoutConstraint.activate([
             sceneView.topAnchor.constraint(equalTo: topAnchor),
@@ -82,6 +119,9 @@ public class Peek3DView: NSView {
 
             infoBackdrop.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             infoBackdrop.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+            // The info strip gives way to the toggle rather than slide under it.
+            infoBackdrop.trailingAnchor.constraint(
+                lessThanOrEqualTo: wireframeBackdrop.leadingAnchor, constant: -8),
 
             infoLabel.topAnchor.constraint(equalTo: infoBackdrop.topAnchor, constant: 4),
             infoLabel.bottomAnchor.constraint(equalTo: infoBackdrop.bottomAnchor, constant: -4),
@@ -134,6 +174,16 @@ public class Peek3DView: NSView {
         pivot = scene.rootNode.childNode(withName: "pivot", recursively: false)
         startIdleRotation()
 
+        let wire = scene.rootNode.childNode(withName: SceneBuilder.wireframeName, recursively: true)
+        // Above the triangle limit no wireframe is built, and the checkbox goes
+        // with it: offering a control that does nothing is worse than no control.
+        wireframeBackdrop.isHidden = wire == nil
+        if let wire {
+            let on = UserDefaults.standard.bool(forKey: Self.wireframeKey)
+            wireframeToggle.state = on ? .on : .off
+            wire.isHidden = !on
+        }
+
         var parts = [mesh.sourceFormat,
                      L("info.triangles", Self.counter.string(from: NSNumber(value: mesh.triangleCount)) ?? "\(mesh.triangleCount)"),
                      MeshDocument.dimensionsLabel(for: mesh)]
@@ -144,10 +194,19 @@ public class Peek3DView: NSView {
 
     public func show(error: Error, filename: String?) {
         sceneView.isHidden = true
+        wireframeBackdrop.isHidden = true
         infoBackdrop.isHidden = false
         infoLabel.stringValue = (filename.map { "\($0)   ·   " } ?? "")
             + (error.localizedDescription)
         infoLabel.textColor = .systemRed
+    }
+
+    @objc private func toggleWireframe() {
+        let on = wireframeToggle.state == .on
+        UserDefaults.standard.set(on, forKey: Self.wireframeKey)
+        sceneView.scene?.rootNode
+            .childNode(withName: SceneBuilder.wireframeName, recursively: true)?
+            .isHidden = !on
     }
 
     // MARK: Idle rotation
