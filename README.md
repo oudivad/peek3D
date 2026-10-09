@@ -24,4 +24,4 @@ Two things that will otherwise look like faults:
 | [Building from source](docs/building.md) | no Xcode needed; signing and releases |
 | [Known limitations](docs/limitations.md) | what it does not do, and why |
 
-MIT, see [LICENSE](LICENSE). Embeds OpenCASCADE under LGPL 2.1 with exception.
+MIT, see [LICENSE](LICENSE). Ships OpenCASCADE — [third-party notices](THIRD-PARTY.md).
