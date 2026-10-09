@@ -14,20 +14,30 @@ public class Peek3DView: NSView {
     private let infoLabel = NSTextField(labelWithString: "")
     private let infoBackdrop = NSVisualEffectView()
     private var pivot: SCNNode?
-    private let wireframeToggle = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let wireframeBackdrop = NSVisualEffectView()
+    private let modeChoice = NSPopUpButton(frame: .zero, pullsDown: false)
     private let colourChoice = NSPopUpButton(frame: .zero, pullsDown: false)
     private let opacitySlider = NSSlider(value: 0.65, minValue: 0.1, maxValue: 1,
                                          target: nil, action: nil)
+    private let surfaceBackdrop = NSVisualEffectView()
+    private let surfaceChoice = NSPopUpButton(frame: .zero, pullsDown: false)
+
     private var isDark = false
+    /// Kept so the wireframe can be rebuilt when the mode changes, without
+    /// reloading the file.
+    private var currentMesh: Mesh?
+    /// Finding the edges of a large mesh runs off the main thread; a newer
+    /// request makes an older result stale.
+    private var wireframeGeneration = 0
 
     /// These choices follow the viewer from one file to the next. An extension
     /// has its own defaults container, so this touches nothing else — and it
     /// cannot read the host application's settings either, which is why the
     /// controls live in the preview rather than in a preferences window.
-    private static let wireframeKey = "ShowWireframe"
+    private static let modeKey = "WireframeMode"
     private static let colourKey = "WireframeColour"
     private static let opacityKey = "WireframeOpacity"
+    private static let surfaceKey = "SurfaceStyle"
     /// Bumped on every gesture: a scheduled resume that a newer gesture has
     /// superseded is recognizable by its stale number.
     private var interactionGeneration = 0
@@ -102,18 +112,39 @@ public class Peek3DView: NSView {
         wireframeBackdrop.isHidden = true
         addSubview(wireframeBackdrop)
 
-        wireframeToggle.translatesAutoresizingMaskIntoConstraints = false
-        wireframeToggle.title = L("preview.wireframe")
-        wireframeToggle.setContentCompressionResistancePriority(.required, for: .horizontal)
-        wireframeToggle.font = .systemFont(ofSize: 11)
-        wireframeToggle.target = self
-        wireframeToggle.action = #selector(toggleWireframe)
+        func popup(_ control: NSPopUpButton, _ action: Selector) {
+            control.translatesAutoresizingMaskIntoConstraints = false
+            control.controlSize = .small
+            control.font = .systemFont(ofSize: 11)
+            control.target = self
+            control.action = action
+            control.setContentCompressionResistancePriority(.required, for: .horizontal)
+        }
 
-        colourChoice.translatesAutoresizingMaskIntoConstraints = false
-        colourChoice.controlSize = .small
-        colourChoice.font = .systemFont(ofSize: 11)
-        colourChoice.target = self
-        colourChoice.action = #selector(restyleWireframe)
+        popup(modeChoice, #selector(changeWireframeMode))
+        for mode in WireframeMode.allCases {
+            modeChoice.addItem(withTitle: mode.label)
+            modeChoice.lastItem?.representedObject = mode.rawValue
+        }
+
+        popup(surfaceChoice, #selector(changeSurface))
+        for surface in SurfaceStyle.allCases {
+            surfaceChoice.addItem(withTitle: surface.label)
+            surfaceChoice.lastItem?.representedObject = surface.rawValue
+        }
+
+        surfaceBackdrop.translatesAutoresizingMaskIntoConstraints = false
+        surfaceBackdrop.material = .hudWindow
+        surfaceBackdrop.blendingMode = .withinWindow
+        surfaceBackdrop.state = .active
+        surfaceBackdrop.wantsLayer = true
+        surfaceBackdrop.layer?.cornerRadius = 7
+        surfaceBackdrop.layer?.masksToBounds = true
+        surfaceBackdrop.isHidden = true
+        addSubview(surfaceBackdrop)
+        surfaceBackdrop.addSubview(surfaceChoice)
+
+        popup(colourChoice, #selector(restyleWireframe))
         for style in WireframeStyle.allCases {
             colourChoice.addItem(withTitle: style.label)
             colourChoice.lastItem?.representedObject = style.rawValue
@@ -125,9 +156,9 @@ public class Peek3DView: NSView {
         opacitySlider.action = #selector(restyleWireframe)
         opacitySlider.toolTip = L("wireframe.opacity")
 
-        // Colour and opacity only appear once the wireframe is on: three
+        // Colour and opacity only appear once a wireframe is on: three
         // controls in the corner of a preview is as much as it will take.
-        let controls = NSStackView(views: [wireframeToggle, colourChoice, opacitySlider])
+        let controls = NSStackView(views: [modeChoice, colourChoice, opacitySlider])
         controls.orientation = .horizontal
         controls.spacing = 8
         controls.translatesAutoresizingMaskIntoConstraints = false
@@ -141,6 +172,14 @@ public class Peek3DView: NSView {
             controls.leadingAnchor.constraint(equalTo: wireframeBackdrop.leadingAnchor, constant: 8),
             controls.trailingAnchor.constraint(equalTo: wireframeBackdrop.trailingAnchor, constant: -9),
             opacitySlider.widthAnchor.constraint(equalToConstant: 70),
+
+            // The surface sits top right, clear of the wireframe controls.
+            surfaceBackdrop.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            surfaceBackdrop.topAnchor.constraint(equalTo: topAnchor, constant: 10),
+            surfaceChoice.topAnchor.constraint(equalTo: surfaceBackdrop.topAnchor, constant: 3),
+            surfaceChoice.bottomAnchor.constraint(equalTo: surfaceBackdrop.bottomAnchor, constant: -3),
+            surfaceChoice.leadingAnchor.constraint(equalTo: surfaceBackdrop.leadingAnchor, constant: 8),
+            surfaceChoice.trailingAnchor.constraint(equalTo: surfaceBackdrop.trailingAnchor, constant: -8),
         ])
 
         NSLayoutConstraint.activate([
@@ -207,26 +246,12 @@ public class Peek3DView: NSView {
         pivot = scene.rootNode.childNode(withName: "pivot", recursively: false)
         startIdleRotation()
 
-        let wire = scene.rootNode.childNode(withName: SceneBuilder.wireframeName, recursively: true)
-        // Above the triangle limit no wireframe is built, and the checkbox goes
-        // with it: offering a control that does nothing is worse than no control.
-        wireframeBackdrop.isHidden = wire == nil
-        if wire != nil {
-            let defaults = UserDefaults.standard
-            let on = defaults.bool(forKey: Self.wireframeKey)
-            wireframeToggle.state = on ? .on : .off
-
-            let stored = defaults.string(forKey: Self.colourKey)
-            let style = stored.flatMap(WireframeStyle.init(rawValue:)) ?? .automatic
-            colourChoice.selectItem(at: WireframeStyle.allCases.firstIndex(of: style) ?? 0)
-
-            // `double(forKey:)` gives 0 for an absent key, which would mean an
-            // invisible wireframe on the very first preview.
-            let opacity = defaults.object(forKey: Self.opacityKey) as? Double ?? 0.65
-            opacitySlider.doubleValue = opacity
-
-            applyWireframeSettings()
-        }
+        currentMesh = mesh
+        wireframeBackdrop.isHidden = false
+        surfaceBackdrop.isHidden = false
+        restoreSettings()
+        applySurface()
+        rebuildWireframe()
 
         var parts = [mesh.sourceFormat,
                      L("info.triangles", Self.counter.string(from: NSNumber(value: mesh.triangleCount)) ?? "\(mesh.triangleCount)"),
@@ -238,43 +263,112 @@ public class Peek3DView: NSView {
 
     public func show(error: Error, filename: String?) {
         sceneView.isHidden = true
+        currentMesh = nil
         wireframeBackdrop.isHidden = true
+        surfaceBackdrop.isHidden = true
         infoBackdrop.isHidden = false
         infoLabel.stringValue = (filename.map { "\($0)   ·   " } ?? "")
             + (error.localizedDescription)
         infoLabel.textColor = .systemRed
     }
 
-    @objc private func toggleWireframe() {
-        UserDefaults.standard.set(wireframeToggle.state == .on, forKey: Self.wireframeKey)
-        applyWireframeSettings()
+    // MARK: Settings
+
+    private func select<T: RawRepresentable & CaseIterable & Equatable>(
+        _ value: T, in popup: NSPopUpButton) where T.RawValue == String {
+        popup.selectItem(at: Array(T.allCases).firstIndex(of: value) ?? 0)
+    }
+
+    private func chosen<T: RawRepresentable>(_ popup: NSPopUpButton, _ fallback: T) -> T
+    where T.RawValue == String {
+        (popup.selectedItem?.representedObject as? String).flatMap(T.init(rawValue:)) ?? fallback
+    }
+
+    private func restoreSettings() {
+        let defaults = UserDefaults.standard
+        select(defaults.string(forKey: Self.modeKey).flatMap(WireframeMode.init(rawValue:)) ?? .off,
+               in: modeChoice)
+        select(defaults.string(forKey: Self.colourKey).flatMap(WireframeStyle.init(rawValue:)) ?? .automatic,
+               in: colourChoice)
+        select(defaults.string(forKey: Self.surfaceKey).flatMap(SurfaceStyle.init(rawValue:)) ?? .light,
+               in: surfaceChoice)
+        // `double(forKey:)` gives 0 for an absent key, which would mean an
+        // invisible wireframe on the very first preview.
+        opacitySlider.doubleValue = defaults.object(forKey: Self.opacityKey) as? Double ?? 0.65
+    }
+
+    @objc private func changeWireframeMode() {
+        UserDefaults.standard.set(modeChoice.selectedItem?.representedObject as? String,
+                                  forKey: Self.modeKey)
+        rebuildWireframe()
     }
 
     @objc private func restyleWireframe() {
-        let style = colourChoice.selectedItem?.representedObject as? String
-        UserDefaults.standard.set(style, forKey: Self.colourKey)
-        UserDefaults.standard.set(opacitySlider.doubleValue, forKey: Self.opacityKey)
-        applyWireframeSettings()
+        let defaults = UserDefaults.standard
+        defaults.set(colourChoice.selectedItem?.representedObject as? String, forKey: Self.colourKey)
+        defaults.set(opacitySlider.doubleValue, forKey: Self.opacityKey)
+        styleWireframe()
     }
 
-    /// Pushes the three settings onto the scene and the controls at once, so
-    /// there is one path to get right rather than three.
-    private func applyWireframeSettings() {
-        guard let wire = sceneView.scene?.rootNode
-            .childNode(withName: SceneBuilder.wireframeName, recursively: true) else { return }
+    @objc private func changeSurface() {
+        UserDefaults.standard.set(surfaceChoice.selectedItem?.representedObject as? String,
+                                  forKey: Self.surfaceKey)
+        applySurface()
+    }
 
-        let on = wireframeToggle.state == .on
-        wire.isHidden = !on
-        colourChoice.isHidden = !on
-        opacitySlider.isHidden = !on
+    private func applySurface() {
+        guard let scene = sceneView.scene else { return }
+        SceneBuilder.apply(chosen(surfaceChoice, SurfaceStyle.light), to: scene)
+    }
 
-        let style = (colourChoice.selectedItem?.representedObject as? String)
-            .flatMap(WireframeStyle.init(rawValue:)) ?? .automatic
-        if let geometry = wire.geometry {
-            SceneBuilder.style(geometry,
-                               color: style.color(dark: isDark),
-                               opacity: CGFloat(opacitySlider.doubleValue))
+    /// Replaces the wireframe node. Finding the edges of a large mesh takes
+    /// long enough to freeze a click, so it runs off the main thread and the
+    /// result is discarded if the viewer has moved on.
+    private func rebuildWireframe() {
+        guard let mesh = currentMesh,
+              let model = sceneView.scene?.rootNode
+                .childNode(withName: SceneBuilder.modelName, recursively: true) else { return }
+
+        model.childNode(withName: SceneBuilder.wireframeName, recursively: false)?
+            .removeFromParentNode()
+
+        let mode = chosen(modeChoice, WireframeMode.off)
+        colourChoice.isHidden = mode == .off
+        opacitySlider.isHidden = mode == .off
+        guard mode != .off else { return }
+
+        wireframeGeneration += 1
+        let generation = wireframeGeneration
+
+        guard mode == .edges else {
+            attach(SceneBuilder.wireframe(for: mesh, mode: mode), to: model)
+            return
         }
+        Task.detached(priority: .userInitiated) {
+            let edges = FeatureEdges.lines(of: mesh)
+            await MainActor.run { [weak self] in
+                // The node is looked up again rather than carried across: an
+                // SCNNode is not Sendable, and the scene may have changed.
+                guard let self, self.wireframeGeneration == generation,
+                      let model = self.sceneView.scene?.rootNode
+                        .childNode(withName: SceneBuilder.modelName, recursively: true) else { return }
+                self.attach(SceneBuilder.wireframe(for: mesh, mode: .edges, edges: edges), to: model)
+            }
+        }
+    }
+
+    private func attach(_ node: SCNNode?, to model: SCNNode) {
+        guard let node else { return }
+        model.addChildNode(node)
+        styleWireframe()
+    }
+
+    private func styleWireframe() {
+        guard let geometry = sceneView.scene?.rootNode
+            .childNode(withName: SceneBuilder.wireframeName, recursively: true)?.geometry else { return }
+        SceneBuilder.style(geometry,
+                           color: chosen(colourChoice, WireframeStyle.automatic).color(dark: isDark),
+                           opacity: CGFloat(opacitySlider.doubleValue))
     }
 
     // MARK: Idle rotation

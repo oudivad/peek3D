@@ -41,7 +41,10 @@
 "handover.failed.body"  = "In Terminal:\n\npluginkit -e %1$@ -i %2$@";
 
 /* Preview controls */
-"preview.wireframe"     = "Wireframe";
+/* The three wireframe modes, offered as a list in the preview */
+"wireframe.mode.off"       = "No wireframe";
+"wireframe.mode.edges"     = "Sharp edges";
+"wireframe.mode.triangles" = "All triangles";
 "wireframe.opacity"     = "Line opacity";
 "wireframe.colour.automatic" = "Auto";
 "wireframe.colour.black" = "Black";
@@ -49,3 +52,12 @@
 "wireframe.colour.grey" = "Grey";
 "wireframe.colour.blue" = "Blue";
 "wireframe.colour.red"  = "Red";
+
+/* The surface the part is rendered in */
+"surface.light"    = "Light grey";
+"surface.white"    = "White";
+"surface.graphite" = "Graphite";
+"surface.steel"    = "Steel";
+"surface.brass"    = "Brass";
+"surface.copper"   = "Copper";
+"surface.blue"     = "Blue";

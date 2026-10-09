@@ -18,31 +18,35 @@ enum LoaderTests {
         let size: SIMD3<Float>
         /// Vertex count expected after welding and splitting on sharp edges.
         let vertices: Int?
+        /// Whether the shape has edges a drawing would show, and so must
+        /// produce them. A fully filleted part has none — every face meets the
+        /// next tangentially — which is why this cannot be assumed of them all.
+        let sharpEdges: Bool
     }
 
     static let expectations: [Expectation] = [
         // The cube's 8 corners give 24 vertices: three face orientations meet at
         // each, 90° apart, well past the crease angle.
-        .init(file: "cube.stl",       triangles: 12,   size: [1, 1, 1], vertices: 24),
-        .init(file: "cube_ascii.stl", triangles: 12,   size: [1, 1, 1], vertices: 24),
-        .init(file: "cube.obj",       triangles: 12,   size: [1, 1, 1], vertices: 24),
-        .init(file: "cube.ply",       triangles: 12,   size: [1, 1, 1], vertices: 24),
+        .init(file: "cube.stl",       triangles: 12,   size: [1, 1, 1], vertices: 24, sharpEdges: true),
+        .init(file: "cube_ascii.stl", triangles: 12,   size: [1, 1, 1], vertices: 24, sharpEdges: true),
+        .init(file: "cube.obj",       triangles: 12,   size: [1, 1, 1], vertices: 24, sharpEdges: true),
+        .init(file: "cube.ply",       triangles: 12,   size: [1, 1, 1], vertices: 24, sharpEdges: true),
         // The binary PLY carries its own normals, one per corner, so welding
         // happens on the position-and-normal pair.
-        .init(file: "cube_bin.ply",   triangles: 12,   size: [1, 1, 1], vertices: 8),
+        .init(file: "cube_bin.ply",   triangles: 12,   size: [1, 1, 1], vertices: 8, sharpEdges: true),
         // The 3MF composes two transforms: a translation then a scale.
-        .init(file: "cube.3mf",       triangles: 12,   size: [1, 1, 2], vertices: 24),
+        .init(file: "cube.3mf",       triangles: 12,   size: [1, 1, 2], vertices: 24, sharpEdges: true),
         // A smooth surface: normals average together and the vertex count falls
         // well below the three per triangle of a raw STL.
-        .init(file: "sphere.stl",     triangles: 1152, size: [2, 2, 2], vertices: nil),
+        .init(file: "sphere.stl",     triangles: 1152, size: [2, 2, 2], vertices: nil, sharpEdges: false),
         // A slicer project: the main model holds no mesh at all, only a
         // reference to a separate file inside the archive. This is what Bambu
         // Studio and OrcaSlicer write, and it is the shape of 3MF most people
         // actually have on disk.
-        .init(file: "slicer_project.3mf", triangles: 12, size: [2, 1, 3], vertices: 24),
+        .init(file: "slicer_project.3mf", triangles: 12, size: [2, 1, 3], vertices: 24, sharpEdges: true),
         // A CAD part: the triangle count depends on tessellation, so only the
         // dimensions are checked — those are exact.
-        .init(file: "bracket.step",   triangles: 0,    size: [60, 40, 15], vertices: nil),
+        .init(file: "bracket.step",   triangles: 0,    size: [60, 40, 15], vertices: nil, sharpEdges: false),
     ]
 
     static func main() {
@@ -77,20 +81,18 @@ enum LoaderTests {
                 if mesh.indices.count % 3 != 0 {
                     problems.append("index count is not a multiple of 3")
                 }
-                // The wireframe is built with the scene and hidden until the
-                // viewer asks for it; above the triangle limit it is not built
-                // at all, and the checkbox goes with it.
-                let scene = SceneBuilder.scene(for: mesh, darkBackground: false)
-                let wire = scene.rootNode.childNode(withName: SceneBuilder.wireframeName,
-                                                    recursively: true)
-                if mesh.triangleCount <= SceneBuilder.wireframeLimit {
-                    if wire == nil {
-                        problems.append("no wireframe node")
-                    } else if wire?.isHidden != true {
-                        problems.append("wireframe visible by default")
-                    }
-                } else if wire != nil {
-                    problems.append("wireframe built past the triangle limit")
+                // Sharp edges are what makes a dense mesh readable, so a shape
+                // that has them must yield them.
+                // Only the positive direction is asserted. A mesh can yield
+                // edges for reasons that are not the shape's — an open seam in
+                // a UV sphere, say — so their absence is what would be a bug,
+                // and only on a shape known to have them.
+                if expected.sharpEdges,
+                   SceneBuilder.wireframe(for: mesh, mode: .edges) == nil {
+                    problems.append("no feature edges")
+                }
+                if SceneBuilder.wireframe(for: mesh, mode: .off) != nil {
+                    problems.append("wireframe built when switched off")
                 }
 
                 // A render that fails silently would mean a blank thumbnail in
@@ -125,8 +127,7 @@ enum LoaderTests {
             let missing = [
                 controls.contains { $0 is NSPopUpButton } ? nil : "colour list",
                 controls.contains { $0 is NSSlider } ? nil : "opacity slider",
-                controls.contains { ($0 as? NSButton)?.allowsMixedState == false
-                                    && $0 is NSButton && !($0 is NSPopUpButton) } ? nil : "checkbox",
+                controls.filter { $0 is NSPopUpButton }.count >= 3 ? nil : "a popup",
             ].compactMap { $0 }
             if missing.isEmpty {
                 print("  ✓ preview controls present")

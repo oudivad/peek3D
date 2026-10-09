@@ -25,6 +25,49 @@ public enum WireframeStyle: String, CaseIterable, Sendable {
     public var label: String { L("wireframe.colour.\(rawValue)") }
 }
 
+/// How much of the mesh to draw as lines.
+public enum WireframeMode: String, CaseIterable, Sendable {
+    case off, edges, triangles
+
+    public var label: String { L("wireframe.mode.\(rawValue)") }
+}
+
+/// The surface the part is rendered in. Metalness and roughness move with the
+/// colour: brass that shades like plastic looks like neither.
+public enum SurfaceStyle: String, CaseIterable, Sendable {
+    case light, white, graphite, steel, brass, copper, blue
+
+    var colour: NSColor {
+        switch self {
+        case .light:    return NSColor(calibratedRed: 0.82, green: 0.84, blue: 0.87, alpha: 1)
+        case .white:    return NSColor(calibratedWhite: 0.95, alpha: 1)
+        case .graphite: return NSColor(calibratedWhite: 0.28, alpha: 1)
+        case .steel:    return NSColor(calibratedRed: 0.70, green: 0.72, blue: 0.75, alpha: 1)
+        case .brass:    return NSColor(calibratedRed: 0.76, green: 0.62, blue: 0.29, alpha: 1)
+        case .copper:   return NSColor(calibratedRed: 0.72, green: 0.44, blue: 0.30, alpha: 1)
+        case .blue:     return NSColor(calibratedRed: 0.36, green: 0.52, blue: 0.72, alpha: 1)
+        }
+    }
+
+    var metalness: CGFloat {
+        switch self {
+        case .steel, .brass, .copper: return 0.85
+        default: return 0.05
+        }
+    }
+
+    var roughness: CGFloat {
+        switch self {
+        case .steel:  return 0.28
+        case .brass:  return 0.32
+        case .copper: return 0.34
+        default:      return 0.38
+        }
+    }
+
+    public var label: String { L("surface.\(rawValue)") }
+}
+
 /// Turns a `Mesh` into a SceneKit scene ready to display.
 public enum SceneBuilder {
 
@@ -37,12 +80,11 @@ public enum SceneBuilder {
     /// Vertical field of view.
     static let fieldOfView: Float = 32
 
-    /// Name of the wireframe node, so the view can find and toggle it.
+    /// Name of the wireframe node, so the view can find and replace it.
     public static let wireframeName = "wireframe"
 
-    /// Past this many triangles a wireframe is a black smear and costs real
-    /// time to draw, so it is not built at all.
-    public static let wireframeLimit = 300_000
+    /// Name of the node holding the part itself.
+    public static let modelName = "model"
 
     /// Slack around the bounding sphere. Framing it exactly makes the part look
     /// like it is touching the edges of the Quick Look panel.
@@ -51,14 +93,9 @@ public enum SceneBuilder {
     public static func scene(for mesh: Mesh, darkBackground: Bool) -> SCNScene {
         let scene = SCNScene()
 
-        let shape = geometry(for: mesh)
-        let node = SCNNode(geometry: shape)
-        node.name = "model"
+        let node = SCNNode(geometry: geometry(for: mesh))
+        node.name = modelName
         normalize(node, mesh: mesh)
-
-        if mesh.triangleCount <= wireframeLimit {
-            node.addChildNode(wireframe(over: shape, center: mesh.center, dark: darkBackground))
-        }
 
         // A pivot separate from the model node lets the part spin about its
         // centre without disturbing its scale.
@@ -112,45 +149,85 @@ public enum SceneBuilder {
         return geometry
     }
 
-    /// The mesh drawn as lines, over the solid part.
+    /// Positions alone, for the line geometry: feature edges carry no normal
+    /// and the lines are drawn unlit anyway.
+    static func positionSource(for mesh: Mesh) -> SCNGeometrySource {
+        let stride = MemoryLayout<SIMD3<Float>>.stride
+        return SCNGeometrySource(
+            data: mesh.positions.withUnsafeBufferPointer { Data(buffer: $0) },
+            semantic: .vertex,
+            vectorCount: mesh.positions.count, usesFloatComponents: true,
+            componentsPerVector: 3, bytesPerComponent: MemoryLayout<Float>.size,
+            dataOffset: 0, dataStride: stride)
+    }
+
+    /// The mesh drawn as lines over the solid part, in whichever mode is asked
+    /// for. Returns nil for `.off`, or when a mesh yields no edge worth drawing.
     ///
     /// SceneKit has no depth bias, so lines sharing their geometry with the
     /// surface underneath would z-fight into a stipple. Growing the copy by a
     /// fraction of a percent, about the model's own centre, lifts it clear
     /// without any visible displacement.
-    static func wireframe(over shape: SCNGeometry, center: SIMD3<Float>, dark: Bool) -> SCNNode {
-        let copy = shape.copy() as! SCNGeometry
+    ///
+    /// `edges` lets the caller pass lines computed elsewhere: finding them on a
+    /// million-triangle mesh takes long enough to be worth doing off the main
+    /// thread, and the geometry has to be built on it.
+    public static func wireframe(for mesh: Mesh,
+                                 mode: WireframeMode,
+                                 edges: [UInt32]? = nil) -> SCNNode? {
+        let shape: SCNGeometry
+        switch mode {
+        case .off:
+            return nil
+        case .triangles:
+            guard let copy = geometry(for: mesh).copy() as? SCNGeometry else { return nil }
+            copy.firstMaterial?.fillMode = .lines
+            shape = copy
+        case .edges:
+            let lines = edges ?? FeatureEdges.lines(of: mesh)
+            guard lines.count >= 2 else { return nil }
+            let element = SCNGeometryElement(
+                data: lines.withUnsafeBufferPointer { Data(buffer: $0) },
+                primitiveType: .line,
+                primitiveCount: lines.count / 2,
+                bytesPerIndex: MemoryLayout<UInt32>.size)
+            shape = SCNGeometry(sources: [positionSource(for: mesh)], elements: [element])
+        }
+
         let lines = SCNMaterial()
-        lines.fillMode = .lines
         lines.lightingModel = .constant
         lines.diffuse.contents = NSColor.black
         lines.writesToDepthBuffer = false
         lines.isDoubleSided = true
-        copy.materials = [lines]
+        if mode == .triangles { lines.fillMode = .lines }
+        shape.materials = [lines]
 
-        style(copy, color: WireframeStyle.automatic.color(dark: dark), opacity: 0.65)
-
-        let node = SCNNode(geometry: copy)
+        let node = SCNNode(geometry: shape)
         node.name = wireframeName
         node.renderingOrder = 10
+
         // Scale about the model's own centre: translate the centre to the
         // origin, grow, translate back. `pivot` would have displaced the
         // content instead of only moving the point it scales around.
+        let centre = mesh.center
         let growth: CGFloat = 1.0015
-        var transform = SCNMatrix4MakeTranslation(CGFloat(center.x), CGFloat(center.y), CGFloat(center.z))
+        var transform = SCNMatrix4MakeTranslation(CGFloat(centre.x), CGFloat(centre.y), CGFloat(centre.z))
         transform = SCNMatrix4Scale(transform, growth, growth, growth)
-        transform = SCNMatrix4Translate(transform, CGFloat(-center.x), CGFloat(-center.y), CGFloat(-center.z))
+        transform = SCNMatrix4Translate(transform, CGFloat(-centre.x), CGFloat(-centre.y), CGFloat(-centre.z))
         node.transform = transform
-        node.isHidden = true
         return node
     }
 
-    /// Restyles the wireframe in place. Colour and opacity are viewer
-    /// settings, so they change between previews without rebuilding the scene.
-    ///
-    /// `.constant` still takes ambient light into account, which washes the
-    /// lines out to a pale grey. Emission ignores lighting entirely, so the
-    /// colour asked for is the colour drawn.
+    /// Applies a surface to the part already in a scene.
+    public static func apply(_ surface: SurfaceStyle, to scene: SCNScene) {
+        guard let material = scene.rootNode
+            .childNode(withName: modelName, recursively: true)?
+            .geometry?.firstMaterial else { return }
+        material.diffuse.contents = surface.colour
+        material.metalness.contents = surface.metalness
+        material.roughness.contents = surface.roughness
+    }
+
     public static func style(_ geometry: SCNGeometry, color: NSColor, opacity: CGFloat) {
         guard let material = geometry.firstMaterial else { return }
         material.emission.contents = color
