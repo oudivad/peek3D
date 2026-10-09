@@ -1,7 +1,7 @@
 # Building Peek3D
 
 Only needed if you want to change Peek3D. To simply use it, take the disk image
-from the [latest release](https://github.com/oudivad/peek3d/releases/latest).
+from the [latest release](https://github.com/oudivad/peek3D/releases/latest).
 
 Xcode is not required; the Command Line Tools are enough.
 

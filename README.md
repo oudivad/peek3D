@@ -6,7 +6,7 @@ Press space on an `.stl`, `.obj`, `.ply`, `.3mf`, `.step` or `.iges` file in the
 Finder, and the part shows up and turns. Drag it to rotate, pinch to zoom, press
 space again to put it away.
 
-### [Download the latest release](https://github.com/oudivad/peek3d/releases/latest)
+### [Download the latest release](https://github.com/oudivad/peek3D/releases/latest)
 
 19 MB, macOS 13 or later, Apple Silicon. Drag Peek3D into Applications and open
 it once. That first launch is what makes macOS notice the preview extension;
