@@ -213,17 +213,21 @@ public class Peek3DView: NSView {
         wireframeBackdrop.addSubview(controls)
 
         NSLayoutConstraint.activate([
-            wireframeBackdrop.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            wireframeBackdrop.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+            // Top left: the bottom right crowded the info strip on a narrow
+            // panel, and the two corners up top stay clear of each other.
+            wireframeBackdrop.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            wireframeBackdrop.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             controls.topAnchor.constraint(equalTo: wireframeBackdrop.topAnchor, constant: 3),
             controls.bottomAnchor.constraint(equalTo: wireframeBackdrop.bottomAnchor, constant: -3),
             controls.leadingAnchor.constraint(equalTo: wireframeBackdrop.leadingAnchor, constant: 8),
             controls.trailingAnchor.constraint(equalTo: wireframeBackdrop.trailingAnchor, constant: -9),
             opacitySlider.widthAnchor.constraint(equalToConstant: 70),
 
-            // The surface sits top right, clear of the wireframe controls.
+            // The surface sits top right, facing the wireframe controls.
             surfaceBackdrop.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             surfaceBackdrop.topAnchor.constraint(equalTo: topAnchor, constant: 10),
+            surfaceBackdrop.leadingAnchor.constraint(
+                greaterThanOrEqualTo: wireframeBackdrop.trailingAnchor, constant: 8),
             surfaceChoice.topAnchor.constraint(equalTo: surfaceBackdrop.topAnchor, constant: 3),
             surfaceChoice.bottomAnchor.constraint(equalTo: surfaceBackdrop.bottomAnchor, constant: -3),
             surfaceChoice.leadingAnchor.constraint(equalTo: surfaceBackdrop.leadingAnchor, constant: 8),
@@ -238,9 +242,8 @@ public class Peek3DView: NSView {
 
             infoBackdrop.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             infoBackdrop.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
-            // The info strip gives way to the toggle rather than slide under it.
             infoBackdrop.trailingAnchor.constraint(
-                lessThanOrEqualTo: wireframeBackdrop.leadingAnchor, constant: -8),
+                lessThanOrEqualTo: trailingAnchor, constant: -10),
 
             info.topAnchor.constraint(equalTo: infoBackdrop.topAnchor, constant: 4),
             info.bottomAnchor.constraint(equalTo: infoBackdrop.bottomAnchor, constant: -4),
